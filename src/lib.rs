@@ -34,34 +34,6 @@ pub fn sgr_fg_256(stream: TokenStream) -> TokenStream {
 }
 
 
-/*macro_rules! def_macros {
-    ($(
-    $(#[$attr:meta])*
-    $name:ident -> $fmt:ty;
-    )*) => {
-        $($(#[$attr])*
-        #[proc_macro]
-        pub fn $name(stream: TokenStream) -> TokenStream {
-            let fmt_def = syn::parse_macro_input!(stream as $fmt);
-            quote!(#fmt_def).into()
-        })*
-    };
-}
-
-
-macro_rules! def_sgr {
-    ($(
-    $(#[$attr:meta])*
-    $name:ident = $code:expr;
-    )*) => {
-        def_macros! {
-            $($(#[$attr])*
-            $name -> SgrFormat<$code>;)*
-        }
-    };
-}*/
-
-
 macro_rules! def_sgr {
     ($(
     $(#[$attr:meta])*
@@ -85,9 +57,9 @@ def_sgr! {
     sgr_italic = 3, 23;
     sgr_uline = 4, 24;
     sgr_blink = 5, 25;
-    // sgr_blink2 = 6, 25;
+    sgr_blink2 = 6, 25;
     sgr_invert = 7, 27;
-    // sgr_conceal = 8, 28;
+    sgr_conceal = 8, 28;
     sgr_strike = 9, 29;
 }
 
@@ -142,27 +114,3 @@ def_sgr! {
     bg_white = 47, 49;
     bg_white_bright = 107, 109;
 }
-
-
-/*macro_rules! def_color_pair {
-    ($($name:ident, $name2:ident = $code:literal;)*) => {$(
-    // #[proc_macro]
-    // pub fn $name(stream: TokenStream) -> TokenStream {
-    //     let color = syn::parse_macro_input!(stream as SgrFormat<$code>);
-    //     quote!(#color).into()
-    // }
-    // #[proc_macro]
-    // pub fn $name2(stream: TokenStream) -> TokenStream {
-    //     let color = syn::parse_macro_input!(stream as SgrFormat<{$code + 60}>);
-    //     quote!(#color).into()
-    // }
-    def_sgr! {
-        $name = $code;
-        $name2 = {$code + 60};
-    }
-    )*};
-}
-
-def_color_pair! {
-    black, black_bright = 30;
-}*/
