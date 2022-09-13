@@ -9,8 +9,8 @@ use syn::{
 };
 
 
-#[derive(Clone, Copy, Debug)]
-enum OutputMode {
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Output {
     /// Resolves to a call to `concat!()`.
     ///
     /// Output: `&str` (literal)
@@ -25,7 +25,7 @@ enum OutputMode {
     String,
 }
 
-impl OutputMode {
+impl Output {
     const fn needs_template(&self) -> bool {
         match self {
             Self::Concat => false,
@@ -36,44 +36,71 @@ impl OutputMode {
 }
 
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Revert {
+    One,
+    All,
+    None,
+}
+
+
 #[derive(Clone, Copy, Debug)]
 struct Behavior {
-    mode: OutputMode,
-    revert: bool,
+    output: Output,
+    revert: Revert,
 }
 
 impl Parse for Behavior {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mode = if input.parse::<Token![@]>().is_ok() {
-            OutputMode::String
+        let mut sigil = false;
+
+        let output = if input.parse::<Token![@]>().is_ok() {
+            sigil = true;
+            Output::String
         } else if input.parse::<Token![%]>().is_ok() {
-            OutputMode::Format
+            sigil = true;
+            Output::Format
         } else {
-            OutputMode::Concat
+            Output::Concat
         };
 
-        let no_revert = input.parse::<Token![!]>().is_ok();
-        let revert = !no_revert;
+        let revert = if input.parse::<Token![!]>().is_ok() {
+            sigil = true;
+            Revert::None
+        } else if input.parse::<Token![*]>().is_ok() {
+            sigil = true;
+            Revert::All
+        } else {
+            Revert::One
+        };
 
-        Ok(Self { mode, revert })
+        if sigil {
+            //  Accept, but do not require, a comma after mode sigils.
+            input.parse::<Token![,]>().ok();
+        }
+
+        Ok(Self { output, revert })
     }
 }
 
 
 #[derive(Clone)]
-pub struct SgrFormat<const FMT: usize> {
+pub struct SgrFormat {
     behavior: Behavior,
     template: Option<syn::LitStr>,
     contents: Vec<proc_macro2::TokenTree>,
+
+    pub start: String,
+    pub end: String,
 }
 
-impl<const FMT: usize> Parse for SgrFormat<FMT> {
+impl Parse for SgrFormat {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let behavior: Behavior = input.parse()?;
         let template: Option<syn::LitStr>;
         let contents;
 
-        if behavior.mode.needs_template() {
+        if behavior.output.needs_template() {
             let expect_comma: bool;
 
             // template = Some(input.parse()?);
@@ -119,61 +146,45 @@ impl<const FMT: usize> Parse for SgrFormat<FMT> {
             contents = params;
         }
 
-        Ok(Self { behavior, template, contents })
+        Ok(Self {
+            behavior,
+            template,
+            contents,
+            start: String::new(),
+            end: String::new(),
+        })
     }
 }
 
-impl<const FMT: usize> ToTokens for SgrFormat<FMT> {
+impl ToTokens for SgrFormat {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let fmt = format!("\x1B[{FMT}m");
-        let end = "\x1B[m";
+        let fmt: String = format!("\x1B[{}m", self.start);
+        let revert: String = match self.behavior.revert {
+            Revert::One => format!("\x1B[{}m", self.end),
+            Revert::All => String::from("\x1B[m"),
+            Revert::None => String::new(),
+        };
 
         let mut content = TokenStream::new();
-
-        // if let Some(template) = &self.template {
-        //     content.append(template.token());
-        //
-        //     if !self.contents.is_empty() {
-        //         content.extend(quote!(,));
-        //         // content.append(syn::token::Comma);
-        //     }
-        // }
-
-        // content.append_separated(&self.contents, quote!(,));
         content.append_all(&self.contents);
 
         let expr;
 
-        match self.behavior.mode {
-            OutputMode::Concat => {
+        match self.behavior.output {
+            Output::Concat => {
                 assert!(self.template.is_none());
-
-                expr = if self.behavior.revert {
-                    quote!(concat!(#fmt, #content, #end))
-                } else {
-                    quote!(concat!(#fmt, #content))
-                };
+                expr = quote!(concat!(concat!(#fmt, #content), #revert));
             }
-            OutputMode::Format => {
+            Output::Format => {
                 let template = self.template.as_ref().unwrap();
-                let temp_fmt = if self.behavior.revert {
-                    format!("{}{}{}", fmt, template.value(), end)
-                } else {
-                    format!("{}{}", fmt, template.value())
-                };
-
+                let temp_fmt = format!("{}{}{}", fmt, template.value(), revert);
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
                 expr = quote!(format_args!(#temp_lit, #content));
             }
-            OutputMode::String => {
+            Output::String => {
                 let template = self.template.as_ref().unwrap();
-                let temp_fmt = if self.behavior.revert {
-                    format!("{}{}{}", fmt, template.value(), end)
-                } else {
-                    format!("{}{}", fmt, template.value())
-                };
-
+                let temp_fmt = format!("{}{}{}", fmt, template.value(), revert);
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
                 expr = quote!(format!(#temp_lit, #content));
