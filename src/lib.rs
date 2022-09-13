@@ -41,19 +41,18 @@ pub fn sgr_fg_256(stream: TokenStream) -> TokenStream {
 macro_rules! def_sgr {
     ($(
     $(#[$attr:meta])*
-    $name:ident = $start:literal $(, $end:literal)?;
+    $name:ident = $start:expr, $end:expr;
     )*) => {
         $($(#[$attr])*
         #[proc_macro]
         pub fn $name(stream: TokenStream) -> TokenStream {
             let sgr_base = syn::parse_macro_input!(stream as SgrBase);
 
-            let start = format!("{}", $start);
-            #[allow(unused_assignments)]
-            let mut end = String::new();
-            $(end = format!("{}", $end);)?
+            let sgr_fmt = sgr_base.into_format(
+                format!("{}", $start),
+                format!("{}", $end),
+            );
 
-            let sgr_fmt = sgr_base.into_format(start, end);
             let tokens = sgr_fmt.tokens();
             quote!(#tokens).into()
         })*
