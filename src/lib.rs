@@ -60,65 +60,65 @@ macro_rules! def_sgr {
 }
 
 def_sgr! {
-    sgr_bold = 1, 22;
-    sgr_faint = 2, 22;
-    sgr_italic = 3, 23;
-    sgr_uline = 4, 24;
-    sgr_blink = 5, 25;
-    sgr_blink2 = 6, 25;
-    sgr_invert = 7, 27;
+    sgr_bold    = 1, 22;
+    sgr_faint   = 2, 22;
+    sgr_italic  = 3, 23;
+    sgr_uline   = 4, 24;
+    sgr_blink   = 5, 25;
+    sgr_blink2  = 6, 25;
+    sgr_invert  = 7, 27;
     sgr_conceal = 8, 28;
-    sgr_strike = 9, 29;
+    sgr_strike  = 9, 29;
 }
 
 def_sgr! {
-    black = 30, 39;
-    black_bright = 90, 99;
+    black           = 30, 39;
+    black_bright    = 90, 99;
 
-    red = 31, 39;
-    red_bright = 91, 99;
+    red             = 31, 39;
+    red_bright      = 91, 99;
 
-    green = 32, 39;
-    green_bright = 92, 99;
+    green           = 32, 39;
+    green_bright    = 92, 99;
 
-    yellow = 33, 39;
-    yellow_bright = 93, 99;
+    yellow          = 33, 39;
+    yellow_bright   = 93, 99;
 
-    blue = 34, 39;
-    blue_bright = 94, 99;
+    blue            = 34, 39;
+    blue_bright     = 94, 99;
 
-    magenta = 35, 39;
-    magenta_bright = 95, 99;
+    magenta         = 35, 39;
+    magenta_bright  = 95, 99;
 
-    cyan = 36, 39;
-    cyan_bright = 96, 99;
+    cyan            = 36, 39;
+    cyan_bright     = 96, 99;
 
-    white = 37, 39;
-    white_bright = 97, 99;
+    white           = 37, 39;
+    white_bright    = 97, 99;
 }
 
 def_sgr! {
-    bg_black = 40, 49;
-    bg_black_bright = 100, 109;
+    bg_black            =  40,  49;
+    bg_black_bright     = 100, 109;
 
-    bg_red = 41, 49;
-    bg_red_bright = 101, 109;
+    bg_red              =  41,  49;
+    bg_red_bright       = 101, 109;
 
-    bg_green = 42, 49;
-    bg_green_bright = 102, 109;
+    bg_green            =  42,  49;
+    bg_green_bright     = 102, 109;
 
-    bg_yellow = 43, 49;
-    bg_yellow_bright = 103, 109;
+    bg_yellow           =  43,  49;
+    bg_yellow_bright    = 103, 109;
 
-    bg_blue = 44, 49;
-    bg_blue_bright = 104, 109;
+    bg_blue             =  44,  49;
+    bg_blue_bright      = 104, 109;
 
-    bg_magenta = 45, 49;
-    bg_magenta_bright = 105, 109;
+    bg_magenta          =  45,  49;
+    bg_magenta_bright   = 105, 109;
 
-    bg_cyan = 46, 49;
-    bg_cyan_bright = 106, 109;
+    bg_cyan             =  46,  49;
+    bg_cyan_bright      = 106, 109;
 
-    bg_white = 47, 49;
-    bg_white_bright = 107, 109;
+    bg_white            =  47,  49;
+    bg_white_bright     = 107, 109;
 }
