@@ -219,9 +219,9 @@ impl<const BG: bool> Parse for SgrRgb<BG> {
 
             (r, g, b)
         } else {
-            let color_lit: syn::LitInt = input.parse()?;
-            let color: u32 = color_lit.base10_parse()?;
-            let [_, r, g, b] = color.to_be_bytes();
+            let [_, r, g, b] = input.parse::<syn::LitInt>()?
+                .base10_parse::<u32>()?
+                .to_be_bytes();
 
             (r, g, b)
         };
@@ -249,9 +249,8 @@ pub struct Sgr256<const BG: bool> {
 impl<const BG: bool> Parse for Sgr256<BG> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let code: u8 = if BG { 48 } else { 38 };
-
-        let color_lit: syn::LitInt = input.parse()?;
-        let color: u8 = color_lit.base10_parse()?;
+        let color: u8 = input.parse::<syn::LitInt>()?
+            .base10_parse()?;
 
         input.parse::<Token![;]>()?;
         let mut format: SgrFormat = input.parse()?;
