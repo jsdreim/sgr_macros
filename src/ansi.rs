@@ -236,19 +236,28 @@ impl<const BG: bool> ToTokens for SgrRgb<BG> {
 }
 
 
-// pub struct Sgr256 {
-//     color: u8,
-//     behavior: Behavior,
-// }
-//
-// impl Parse for Sgr256 {
-//     fn parse(input: ParseStream) -> Result<Self> {
-//         todo!()
-//     }
-// }
-//
-// impl ToTokens for Sgr256 {
-//     fn to_tokens(&self, tokens: &mut TokenStream) {
-//         todo!()
-//     }
-// }
+pub struct Sgr256<const BG: bool> {
+    format: SgrFormat,
+}
+
+impl<const BG: bool> Parse for Sgr256<BG> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let code: u8 = if BG { 48 } else { 38 };
+
+        let color_lit: syn::LitInt = input.parse()?;
+        let color: u8 = color_lit.base10_parse()?;
+
+        input.parse::<Token![;]>()?;
+        let mut format: SgrFormat = input.parse()?;
+        format.start = format!("{};5;{}", code, color);
+        format.end = format!("{}", code + 1);
+
+        Ok(Self { format })
+    }
+}
+
+impl<const BG: bool> ToTokens for Sgr256<BG> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.format.to_tokens(tokens)
+    }
+}

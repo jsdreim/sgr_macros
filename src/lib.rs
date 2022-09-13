@@ -3,7 +3,7 @@ mod old;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use ansi::{SgrFormat, SgrRgb, /*Sgr256*/};
+use ansi::{SgrFormat, SgrRgb, Sgr256};
 
 
 #[proc_macro]
@@ -16,6 +16,20 @@ pub fn sgr_bg_rgb(stream: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn sgr_fg_rgb(stream: TokenStream) -> TokenStream {
     let fmt_def = syn::parse_macro_input!(stream as SgrRgb<false>);
+    quote!(#fmt_def).into()
+}
+
+
+#[proc_macro]
+pub fn sgr_bg_256(stream: TokenStream) -> TokenStream {
+    let fmt_def = syn::parse_macro_input!(stream as Sgr256<true>);
+    quote!(#fmt_def).into()
+}
+
+
+#[proc_macro]
+pub fn sgr_fg_256(stream: TokenStream) -> TokenStream {
+    let fmt_def = syn::parse_macro_input!(stream as Sgr256<false>);
     quote!(#fmt_def).into()
 }
 

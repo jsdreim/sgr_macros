@@ -66,3 +66,23 @@ fn test_sgr_rgb() {
     // eprintln!("{}", text);
     assert_eq!(text, "\x1B[48;2;51;85;85mRGB text\x1B[m");
 }
+
+
+#[test]
+fn test_sgr_256() {
+    let text = sgr_fg_256!(255; "Indexed-color text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[38;5;255mIndexed-color text\x1B[39m");
+
+    let text = sgr_fg_256!(173; "Indexed-color text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[38;5;173mIndexed-color text\x1B[39m");
+
+    let text = sgr_bg_256!(64; ! "Indexed-color text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[48;5;64mIndexed-color text");
+
+    let text = sgr_bg_256!(128; * "Indexed-color text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[48;5;128mIndexed-color text\x1B[m");
+}
