@@ -1,3 +1,4 @@
+use std::fmt::Arguments;
 use sgr_macros::*;
 
 
@@ -16,13 +17,27 @@ fn test_sgr_concat() {
         red!(!"red")
     );
     // eprintln!("a {text} z");
-    assert_eq!(text, "\x1B[3mitalic, \x1B[32mitalic green\x1B[39m, \x1B[31mred\x1B[23m");
+    assert_eq!(
+        text,
+        "\x1B[3mitalic, \x1B[32mitalic green\x1B[39m, \x1B[31mred\x1B[23m",
+    );
 }
 
 
-// #[test]
-// fn test_sgr_format() {
-// }
+#[test]
+fn test_sgr_format() {
+    let args: Arguments = green!(% "green text");
+    let text: String = args.to_string();
+    assert_eq!(text, "\x1B[32mgreen text\x1B[39m");
+
+    let args: Arguments = green!(%* "green text");
+    let text: String = args.to_string();
+    assert_eq!(text, "\x1B[32mgreen text\x1B[m");
+
+    let args: Arguments = green!(%! "green text");
+    let text: String = args.to_string();
+    assert_eq!(text, "\x1B[32mgreen text");
+}
 
 
 #[test]
@@ -40,7 +55,10 @@ fn test_sgr_string() {
         r = red!(! "red"),
     );
     // eprintln!("a {text} z");
-    assert_eq!(text, "\x1B[3mitalic \x1B[31mred \x1B[32mgreen\x1B[39m \x1B[34mblue\x1B[m");
+    assert_eq!(
+        text,
+        "\x1B[3mitalic \x1B[31mred \x1B[32mgreen\x1B[39m \x1B[34mblue\x1B[m",
+    );
 }
 
 
