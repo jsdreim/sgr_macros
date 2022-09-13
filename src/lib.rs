@@ -1,9 +1,9 @@
-mod ansi;
 mod old;
+mod sgr;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use ansi::{SgrBase, SgrData, SgrRgb, Sgr256};
+use sgr::{SgrBase, SgrData, SgrRgb, Sgr256};
 
 
 #[proc_macro]
