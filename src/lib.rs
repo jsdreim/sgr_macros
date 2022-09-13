@@ -3,7 +3,7 @@ mod old;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use ansi::{SgrFormat, SgrRgb, Sgr256};
+use ansi::{SgrBase, SgrRgb, Sgr256};
 
 
 #[proc_macro]
@@ -42,11 +42,15 @@ macro_rules! def_sgr {
         $($(#[$attr])*
         #[proc_macro]
         pub fn $name(stream: TokenStream) -> TokenStream {
-            let mut fmt_def = syn::parse_macro_input!(stream as SgrFormat);
-            fmt_def.start = format!("{}", $start);
-            $(fmt_def.end = format!("{}", $end);)?
+            let sgr_base = syn::parse_macro_input!(stream as SgrBase);
 
-            quote!(#fmt_def).into()
+            let start = format!("{}", $start);
+            #[allow(unused_assignments)]
+            let mut end = String::new();
+            $(end = format!("{}", $end);)?
+
+            let sgr_fmt = sgr_base.into_format(start, end);
+            quote!(#sgr_fmt).into()
         })*
     };
 }

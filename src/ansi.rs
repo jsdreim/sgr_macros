@@ -88,16 +88,19 @@ impl Parse for Behavior {
 
 
 #[derive(Clone)]
-pub struct SgrFormat {
+pub struct SgrBase {
     behavior: Behavior,
     template: Option<syn::LitStr>,
     contents: Vec<proc_macro2::TokenTree>,
-
-    pub start: String,
-    pub end: String,
 }
 
-impl Parse for SgrFormat {
+impl SgrBase {
+    pub const fn into_format(self, start: String, end: String) -> SgrFormat {
+        SgrFormat { base: self, start, end }
+    }
+}
+
+impl Parse for SgrBase {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let behavior: Behavior = input.parse()?;
         let template: Option<syn::LitStr>;
@@ -149,44 +152,45 @@ impl Parse for SgrFormat {
             contents = params;
         }
 
-        Ok(Self {
-            behavior,
-            template,
-            contents,
-            start: String::new(),
-            end: String::new(),
-        })
+        Ok(Self { behavior, template, contents })
     }
+}
+
+
+pub struct SgrFormat {
+    base: SgrBase,
+    start: String,
+    end: String,
 }
 
 impl ToTokens for SgrFormat {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let fmt: String = format!("\x1B[{}m", self.start);
-        let revert: String = match self.behavior.revert {
+        let revert: String = match self.base.behavior.revert {
             Revert::One => format!("\x1B[{}m", self.end),
             Revert::All => String::from("\x1B[m"),
             Revert::None => String::new(),
         };
 
         let mut content = TokenStream::new();
-        content.append_all(&self.contents);
+        content.append_all(&self.base.contents);
 
         let expr;
 
-        match self.behavior.output {
+        match self.base.behavior.output {
             Output::Concat => {
-                assert!(self.template.is_none());
+                assert!(self.base.template.is_none());
                 expr = quote!(concat!(concat!(#fmt, #content), #revert));
             }
             Output::Format => {
-                let template = self.template.as_ref().unwrap();
+                let template = self.base.template.as_ref().unwrap();
                 let temp_fmt = format!("{}{}{}", fmt, template.value(), revert);
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
                 expr = quote!(format_args!(#temp_lit, #content));
             }
             Output::String => {
-                let template = self.template.as_ref().unwrap();
+                let template = self.base.template.as_ref().unwrap();
                 let temp_fmt = format!("{}{}{}", fmt, template.value(), revert);
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
@@ -209,9 +213,11 @@ impl<const BG: bool> Parse for SgrRgb<BG> {
 
         let Rgb { r, g, b } = input.parse()?;
         input.parse::<Token![;]>()?;
-        let mut format: SgrFormat = input.parse()?;
-        format.start = format!("{};2;{};{};{}", code, r, g, b);
-        format.end = format!("{}", code + 1);
+        let base: SgrBase = input.parse()?;
+        let start = format!("{};2;{};{};{}", code, r, g, b);
+        let end = format!("{}", code + 1);
+
+        let format = base.into_format(start, end);
 
         Ok(Self { format })
     }
@@ -235,9 +241,11 @@ impl<const BG: bool> Parse for Sgr256<BG> {
             .base10_parse()?;
 
         input.parse::<Token![;]>()?;
-        let mut format: SgrFormat = input.parse()?;
-        format.start = format!("{};5;{}", code, color);
-        format.end = format!("{}", code + 1);
+        let base: SgrBase = input.parse()?;
+        let start = format!("{};5;{}", code, color);
+        let end = format!("{}", code + 1);
+
+        let format = base.into_format(start, end);
 
         Ok(Self { format })
     }
