@@ -1,12 +1,9 @@
+mod rgb;
+
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, TokenStreamExt, ToTokens};
-use syn::{
-    // braced,
-    // bracketed,
-    // parenthesized,
-    parse::{Parse, ParseStream},
-    Token,
-};
+use syn::{parse::{Parse, ParseStream}, Token};
+use rgb::Rgb;
 
 
 type SigilOutputFormat = Token![%];
@@ -210,22 +207,7 @@ impl<const BG: bool> Parse for SgrRgb<BG> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let code: u8 = if BG { 48 } else { 38 };
 
-        let (r, g, b) = if input.parse::<Token![#]>().is_ok() {
-            let r = input.parse::<syn::LitInt>()?.base10_parse()?;
-            let _ = input.parse::<Token![,]>()?;
-            let g = input.parse::<syn::LitInt>()?.base10_parse()?;
-            let _ = input.parse::<Token![,]>()?;
-            let b = input.parse::<syn::LitInt>()?.base10_parse()?;
-
-            (r, g, b)
-        } else {
-            let [_, r, g, b] = input.parse::<syn::LitInt>()?
-                .base10_parse::<u32>()?
-                .to_be_bytes();
-
-            (r, g, b)
-        };
-
+        let Rgb { r, g, b } = input.parse()?;
         input.parse::<Token![;]>()?;
         let mut format: SgrFormat = input.parse()?;
         format.start = format!("{};2;{};{};{}", code, r, g, b);

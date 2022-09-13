@@ -64,22 +64,73 @@ fn test_sgr_string() {
 
 #[test]
 fn test_sgr_rgb() {
-    let text = sgr_fg_rgb!(0xFF55FF; "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
-
+    //  Literal `0xRRGGBB` hex format.
     let text = sgr_bg_rgb!(0x420311; "RGB text");
     // eprintln!("{}", text);
     assert_eq!(text, "\x1B[48;2;66;3;17mRGB text\x1B[49m");
 
-    let text = sgr_fg_rgb!(#255,128,0; "RGB text");
+    let text = sgr_fg_rgb!(0xFF55FF; "RGB text");
     // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;128;0mRGB text\x1B[39m");
+    assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
 
+    //  String "0xRRGGBB" hex format.
+    let text = sgr_fg_rgb!("0xFF55FF"; "RGB text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
+
+    //  String "#RRGGBB" hex format.
+    let text = sgr_fg_rgb!("#FF55FF"; "RGB text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
+
+    //  Tuple format (all integers).
+    let text = sgr_fg_rgb!((255, 127, 0); "RGB text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[38;2;255;127;0mRGB text\x1B[39m");
+
+    //  Tuple format (with floats).
+    let text = sgr_fg_rgb!((1.0, 0.5, 0); "RGB text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[38;2;255;127;0mRGB text\x1B[39m");
+
+    //  Confirm equivalence between zero forms.
+    assert_eq!(
+        sgr_fg_rgb!(0x000; "RGB text"),
+        sgr_fg_rgb!(0x000000; "RGB text"),
+    );
+    assert_eq!(
+        sgr_fg_rgb!(0x000; "RGB text"),
+        sgr_fg_rgb!(0; "RGB text"),
+    );
+
+    //  Confirm that expansion of `RGB` into `RRGGBB` works properly.
+    assert_eq!(
+        sgr_fg_rgb!("#ABC"; "RGB text"),
+        sgr_fg_rgb!("#AABBCC"; "RGB text"),
+    );
+    // assert_eq!(
+    //     sgr_fg_rgb!(0xABC; "RGB text"),
+    //     sgr_fg_rgb!(0xAABBCC; "RGB text"),
+    // );
+    // assert_eq!(
+    //     sgr_fg_rgb!(0xFFF; "RGB text"),
+    //     sgr_fg_rgb!(0xFFFFFF; "RGB text"),
+    // );
+    // assert_eq!(
+    //     sgr_fg_rgb!("#ABC"; "RGB text"),
+    //     sgr_fg_rgb!(0xAABBCC; "RGB text"),
+    // );
+    // assert_eq!(
+    //     sgr_fg_rgb!(0xABC; "RGB text"),
+    //     sgr_fg_rgb!("#AABBCC"; "RGB text"),
+    // );
+
+    //  Confirm that non-revert mode works properly.
     let text = sgr_bg_rgb!(0x553355; ! "RGB text");
     // eprintln!("{}", text);
     assert_eq!(text, "\x1B[48;2;85;51;85mRGB text");
 
+    //  Confirm that all-revert mode works properly.
     let text = sgr_bg_rgb!(0x335555; * "RGB text");
     // eprintln!("{}", text);
     assert_eq!(text, "\x1B[48;2;51;85;85mRGB text\x1B[m");
