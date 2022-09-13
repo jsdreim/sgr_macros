@@ -196,30 +196,46 @@ impl ToTokens for SgrFormat {
 }
 
 
-// pub struct SgrRgb {
-//     color: u32,
-//     behavior: Behavior,
-// }
-//
-// impl Parse for SgrRgb {
-//     fn parse(input: ParseStream) -> Result<Self> {
-//         input.parse::<t![#]>()?;
-//         let color_lit = input.parse::<syn::LitInt>()?;
-//         let color: u32 = color_lit.to_string().parse().unwrap();
-//
-//         dbg!(color);
-//
-//         todo!()
-//     }
-// }
-//
-// impl ToTokens for SgrRgb {
-//     fn to_tokens(&self, tokens: &mut TokenStream) {
-//         todo!()
-//     }
-// }
-//
-//
+pub struct SgrRgb<const BG: bool> {
+    format: SgrFormat,
+}
+
+impl<const BG: bool> Parse for SgrRgb<BG> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let code: u8 = if BG { 48 } else { 38 };
+
+        let (r, g, b) = if input.parse::<Token![#]>().is_ok() {
+            let r = input.parse::<syn::LitInt>()?.base10_parse()?;
+            let _ = input.parse::<Token![,]>()?;
+            let g = input.parse::<syn::LitInt>()?.base10_parse()?;
+            let _ = input.parse::<Token![,]>()?;
+            let b = input.parse::<syn::LitInt>()?.base10_parse()?;
+
+            (r, g, b)
+        } else {
+            let color_lit: syn::LitInt = input.parse()?;
+            let color: u32 = color_lit.base10_parse()?;
+            let [_, r, g, b] = color.to_be_bytes();
+
+            (r, g, b)
+        };
+
+        input.parse::<Token![;]>()?;
+        let mut format: SgrFormat = input.parse()?;
+        format.start = format!("{};2;{};{};{}", code, r, g, b);
+        format.end = format!("{}", code + 1);
+
+        Ok(Self { format })
+    }
+}
+
+impl<const BG: bool> ToTokens for SgrRgb<BG> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.format.to_tokens(tokens)
+    }
+}
+
+
 // pub struct Sgr256 {
 //     color: u8,
 //     behavior: Behavior,
