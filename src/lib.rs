@@ -3,34 +3,38 @@ mod old;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use ansi::{SgrBase, SgrRgb, Sgr256};
+use ansi::{SgrBase, SgrData, SgrRgb, Sgr256};
 
 
 #[proc_macro]
 pub fn sgr_bg_rgb(stream: TokenStream) -> TokenStream {
-    let fmt_def = syn::parse_macro_input!(stream as SgrRgb<true>);
-    quote!(#fmt_def).into()
+    let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<true>);
+    let tokens = sgr_rgb.tokens();
+    quote!(#tokens).into()
 }
 
 
 #[proc_macro]
 pub fn sgr_fg_rgb(stream: TokenStream) -> TokenStream {
-    let fmt_def = syn::parse_macro_input!(stream as SgrRgb<false>);
-    quote!(#fmt_def).into()
+    let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<false>);
+    let tokens = sgr_rgb.tokens();
+    quote!(#tokens).into()
 }
 
 
 #[proc_macro]
 pub fn sgr_bg_256(stream: TokenStream) -> TokenStream {
-    let fmt_def = syn::parse_macro_input!(stream as Sgr256<true>);
-    quote!(#fmt_def).into()
+    let sgr_256 = syn::parse_macro_input!(stream as Sgr256<true>);
+    let tokens = sgr_256.tokens();
+    quote!(#tokens).into()
 }
 
 
 #[proc_macro]
 pub fn sgr_fg_256(stream: TokenStream) -> TokenStream {
-    let fmt_def = syn::parse_macro_input!(stream as Sgr256<false>);
-    quote!(#fmt_def).into()
+    let sgr_256 = syn::parse_macro_input!(stream as Sgr256<false>);
+    let tokens = sgr_256.tokens();
+    quote!(#tokens).into()
 }
 
 
@@ -50,7 +54,8 @@ macro_rules! def_sgr {
             $(end = format!("{}", $end);)?
 
             let sgr_fmt = sgr_base.into_format(start, end);
-            quote!(#sgr_fmt).into()
+            let tokens = sgr_fmt.tokens();
+            quote!(#tokens).into()
         })*
     };
 }

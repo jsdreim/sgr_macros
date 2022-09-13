@@ -93,7 +93,7 @@ pub struct SgrBase {
 
 impl SgrBase {
     pub const fn into_format(self, start: String, end: String) -> SgrFormat {
-        SgrFormat { base: self, start, end }
+        SgrFormat { base: self, opening: start, closing: end }
     }
 }
 

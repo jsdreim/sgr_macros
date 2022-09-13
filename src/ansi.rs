@@ -9,102 +9,147 @@ use syn::{parse::{Parse, ParseStream}, Token};
 use rgb::Rgb;
 
 
-pub struct SgrFormat {
-    base: SgrBase,
-    start: String,
-    end: String,
+macro_rules! sgr {
+    ($($param:literal)?) => { concat!("\x1B[", $($param,)? "m") };
+    // ($($param:literal);*) => { concat!("\x1B[", $($param, ";",)* "m") };
 }
 
-impl ToTokens for SgrFormat {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let fmt: String = format!("\x1B[{}m", self.start);
-        let revert: String = match self.base.behavior.revert {
-            Revert::One => format!("\x1B[{}m", self.end),
-            Revert::All => String::from("\x1B[m"),
+
+#[inline]
+const fn color_bg<const BG: bool>() -> u8 {
+    if BG { 48 } else { 38 }
+}
+
+
+pub trait SgrData {
+    fn base(&self) -> &SgrBase;
+    fn fmt_opening(&self) -> String;
+    fn fmt_closing(&self) -> String;
+
+    fn tokens(&self) -> TokenStream {
+        let mut tokens = TokenStream::new();
+
+        let base = self.base();
+        let fmt: String = format!(sgr!("{}"), self.fmt_opening());
+        let end: String = match base.behavior.revert {
+            Revert::One => format!(sgr!("{}"), self.fmt_closing()),
+            Revert::All => String::from(sgr!()),
             Revert::None => String::new(),
         };
 
         let mut content = TokenStream::new();
-        content.append_all(&self.base.contents);
+        content.append_all(&base.contents);
 
-        let expr;
-
-        match self.base.behavior.output {
+        let expr = match base.behavior.output {
             Output::Concat => {
-                assert!(self.base.template.is_none());
-                expr = quote!(concat!(concat!(#fmt, #content), #revert));
+                assert!(base.template.is_none());
+                quote!(concat!(concat!(#fmt, #content), #end))
             }
             Output::Format => {
-                let template = self.base.template.as_ref().unwrap();
-                let temp_fmt = format!("{}{}{}", fmt, template.value(), revert);
+                let template = base.template.as_ref().unwrap();
+                let temp_fmt = format!("{}{}{}", fmt, template.value(), end);
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
-                expr = quote!(format_args!(#temp_lit, #content));
+                quote!(format_args!(#temp_lit, #content))
             }
             Output::String => {
-                let template = self.base.template.as_ref().unwrap();
-                let temp_fmt = format!("{}{}{}", fmt, template.value(), revert);
+                let template = base.template.as_ref().unwrap();
+                let temp_fmt = format!("{}{}{}", fmt, template.value(), end);
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
-                expr = quote!(format!(#temp_lit, #content));
+                quote!(format!(#temp_lit, #content))
             }
-        }
+        };
 
         tokens.extend(expr);
+        tokens
+    }
+}
+
+
+pub struct SgrFormat {
+    base: SgrBase,
+    opening: String,
+    closing: String,
+}
+
+impl SgrData for SgrFormat {
+    fn base(&self) -> &SgrBase { &self.base }
+    fn fmt_opening(&self) -> String { self.opening.clone() }
+    fn fmt_closing(&self) -> String { self.closing.clone() }
+}
+
+impl ToTokens for SgrFormat {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.extend(self.tokens());
     }
 }
 
 
 pub struct SgrRgb<const BG: bool> {
-    format: SgrFormat,
+    base: SgrBase,
+    rgb: Rgb,
+}
+
+impl<const BG: bool> SgrData for SgrRgb<BG> {
+    fn base(&self) -> &SgrBase { &self.base }
+
+    fn fmt_opening(&self) -> String {
+        let Rgb { r, g, b } = &self.rgb;
+        format!("{};2;{};{};{}", color_bg::<BG>(), r, g, b)
+    }
+
+    fn fmt_closing(&self) -> String {
+        format!("{}", color_bg::<BG>() + 1)
+    }
 }
 
 impl<const BG: bool> Parse for SgrRgb<BG> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let code: u8 = if BG { 48 } else { 38 };
-
-        let Rgb { r, g, b } = input.parse()?;
-        input.parse::<Token![;]>()?;
+        let rgb: Rgb = input.parse()?;
+        let _: Token![;] = input.parse()?;
         let base: SgrBase = input.parse()?;
-        let start = format!("{};2;{};{};{}", code, r, g, b);
-        let end = format!("{}", code + 1);
 
-        let format = base.into_format(start, end);
-
-        Ok(Self { format })
+        Ok(Self { base, rgb })
     }
 }
 
 impl<const BG: bool> ToTokens for SgrRgb<BG> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.format.to_tokens(tokens)
+        tokens.extend(self.tokens())
     }
 }
 
 
 pub struct Sgr256<const BG: bool> {
-    format: SgrFormat,
+    base: SgrBase,
+    color: u8,
+}
+
+impl<const BG: bool> SgrData for Sgr256<BG> {
+    fn base(&self) -> &SgrBase { &self.base }
+
+    fn fmt_opening(&self) -> String {
+        format!("{};5;{}", color_bg::<BG>(), self.color)
+    }
+
+    fn fmt_closing(&self) -> String {
+        format!("{}", color_bg::<BG>() + 1)
+    }
 }
 
 impl<const BG: bool> Parse for Sgr256<BG> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let code: u8 = if BG { 48 } else { 38 };
-        let color: u8 = input.parse::<syn::LitInt>()?
-            .base10_parse()?;
-
-        input.parse::<Token![;]>()?;
+        let color: u8 = input.parse::<syn::LitInt>()?.base10_parse()?;
+        let _: Token![;] = input.parse()?;
         let base: SgrBase = input.parse()?;
-        let start = format!("{};5;{}", code, color);
-        let end = format!("{}", code + 1);
 
-        let format = base.into_format(start, end);
-
-        Ok(Self { format })
+        Ok(Self { base, color })
     }
 }
 
 impl<const BG: bool> ToTokens for Sgr256<BG> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.format.to_tokens(tokens)
+        tokens.extend(self.tokens())
     }
 }
