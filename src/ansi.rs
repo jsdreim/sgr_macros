@@ -9,6 +9,12 @@ use syn::{
 };
 
 
+type SigilOutputFormat = Token![%];
+type SigilOutputString = Token![@];
+type SigilRevertAll = Token![*];
+type SigilRevertOff = Token![!];
+
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Output {
     /// Resolves to a call to `concat!()`.
@@ -54,20 +60,20 @@ impl Parse for Behavior {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut sigil = false;
 
-        let output = if input.parse::<Token![@]>().is_ok() {
+        let output = if input.parse::<SigilOutputString>().is_ok() {
             sigil = true;
             Output::String
-        } else if input.parse::<Token![%]>().is_ok() {
+        } else if input.parse::<SigilOutputFormat>().is_ok() {
             sigil = true;
             Output::Format
         } else {
             Output::Concat
         };
 
-        let revert = if input.parse::<Token![!]>().is_ok() {
+        let revert = if input.parse::<SigilRevertOff>().is_ok() {
             sigil = true;
             Revert::None
-        } else if input.parse::<Token![*]>().is_ok() {
+        } else if input.parse::<SigilRevertAll>().is_ok() {
             sigil = true;
             Revert::All
         } else {
