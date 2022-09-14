@@ -95,7 +95,7 @@ impl<const BG: bool> SgrData for SgrRgb<BG> {
     fn base(&self) -> &SgrBase { &self.base }
 
     fn fmt_opening(&self) -> String {
-        let Rgb { r, g, b } = &self.rgb;
+        let Rgb { a: _, r, g, b } = &self.rgb;
         format!("{};2;{};{};{}", color_bg::<BG>(), r, g, b)
     }
 

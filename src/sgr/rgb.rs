@@ -21,6 +21,7 @@ fn expand_rgb_rrggbb(rgb: &str) -> Option<String> {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Rgb {
+    pub a: u8,
     pub r: u8,
     pub g: u8,
     pub b: u8,
@@ -68,7 +69,7 @@ impl Parse for Rgb {
             let _ = inner.parse::<Token![,]>()?;
             let b = inner.parse::<RgbNumber>()?.0;
 
-            Ok(Self { r, g, b })
+            Ok(Self { a: 0, r, g, b })
         } else if let Ok(_) = input.fork().parse::<syn::LitStr>() {
             let literal = input.parse::<syn::LitStr>()?;
 
@@ -90,15 +91,15 @@ impl Parse for Rgb {
 
 impl From<u32> for Rgb {
     fn from(word: u32) -> Self {
-        let [_, r, g, b] = word.to_be_bytes();
-        Self { r, g, b }
+        let [a, r, g, b] = word.to_be_bytes();
+        Self { a, r, g, b }
     }
 }
 
 impl From<Rgb> for u32 {
     fn from(rgb: Rgb) -> Self {
-        let Rgb { r, g, b } = rgb;
-        Self::from_be_bytes([0, r, g, b])
+        let Rgb { a, r, g, b } = rgb;
+        Self::from_be_bytes([a, r, g, b])
     }
 }
 
