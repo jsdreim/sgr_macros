@@ -2,15 +2,20 @@
 //!     sequences with SGR ("Select Graphic Rendition") parameters. These
 //!     parameters are used to color text, as well as apply styling such as
 //!     italics and underlining. Extensive information on the specific sequences
-//!     is available on [Wikipedia].
+//!     is available on the Wikipedia page for [ANSI escape codes].
 //!
-//! [Wikipedia]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
+//! [ANSI escape codes]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 //!
-//! There are three "modes" of output to every macro in this crate: Literal,
-//!     Format, and String. Additionally, there are three "modes" of reversion:
-//!     Single, Total, and None.
+//! ## Modes
 //!
-//! ## Output Modes
+//! There are three "output modes" to every macro in this crate: Literal,
+//!     Format, and String. These determine the output type of the macro, and
+//!     whether it can be called in `const` contexts. Additionally, there are
+//!     also three "reversion modes": Single, Total, and None. These determine
+//!     what is to be done at the end of a macro call --- the formatting state
+//!     that should be *reverted*.
+//!
+//! ### Output Modes
 //!
 //! The simplest output mode is Literal Mode. A string literal must be supplied,
 //!     and all formatting is applied directly, at compile-time. The output of
@@ -76,7 +81,7 @@
 //! assert_eq!(text, "\x1B[31mERROR: System is on fire.\x1B[39m");
 //! ```
 //!
-//! ## Reversion Modes
+//! ### Reversion Modes
 //!
 //! By default, the result of every macro in this crate will end with another
 //!     control sequence that undoes whatever formatting was set at the start.
@@ -85,8 +90,14 @@
 //!     control sequence to set normal intensity. Similarly, all coloring macros
 //!     will set the default text color when they end.
 //!
-//! NOTE: The formatting is reverted to the *default* state, ***not*** to the
-//!     *previous* state; Nested coloring macros will interfere with each other.
+//! Some styles share a revert sequence, meaning that they cannot be safely
+//!     nested; The end of the inner style will also revert the outer style.
+//!     This is true of the following groups of macros:
+//! - [`sgr_bold!`] and [`sgr_faint!`]
+//! - [`sgr_blink!`] and [`sgr_blink2!`]
+//! - [`sgr_super!`] and [`sgr_sub!`]
+//! - All color macros (basic, indexed, and RGB) that do not end in `*_bg`.
+//! - All color macros (basic, indexed, and RGB) that **do** end in `*_bg`.
 //!
 //! To control the behavior of revert sequences, there are two more sigils: `!`
 //!     to prevent reverting *any* formatting, and `*` to revert *all*
@@ -103,7 +114,6 @@
 //!     sgr_bold!(sgr_italic!(sgr_uline!("WHAM"))),
 //!     "\x1B[1m\x1B[3m\x1B[4mWHAM\x1B[24m\x1B[23m\x1B[22m",
 //! );
-//!
 //! assert_eq!(
 //!     //  One way to address this is to specify that `sgr_uline!` and
 //!     //      `sgr_italic!` should NOT revert, and that `sgr_bold!` should
@@ -118,7 +128,6 @@
 //!     red!(@ "Red, {}, (Not) Red", blue!("Blue")),
 //!     "\x1B[31mRed, \x1B[34mBlue\x1B[39m, (Not) Red\x1B[39m",
 //! );
-//!
 //! assert_eq!(
 //!     //  Here, the color is not reset at the end of Blue, resulting in its
 //!     //      blue formatting spilling out to the end of the string. This sort
@@ -128,6 +137,115 @@
 //!     "\x1B[31mRed, \x1B[34mBlue, Still Blue\x1B[39m",
 //! );
 //! ```
+//!
+//! A comma is accepted, but not required, after sigils. This may be helpful for
+//!     clarity, or in a case of a dereferenced or inverted argument:
+//! ```
+//! let text: &&str = &"Doubly-Referenced String";
+//!
+//! assert_eq!(
+//!     sgr_macros::sgr_bold!(@**text), // Very unclear.
+//!     "\x1B[1mDoubly-Referenced String\x1B[m",
+//! );
+//! assert_eq!(
+//!     sgr_macros::sgr_bold!(@*, *text), // Much clearer.
+//!     "\x1B[1mDoubly-Referenced String\x1B[m",
+//! );
+//!
+//! let mask: u8 = 0b01001001;
+//!
+//! assert_eq!(
+//!     sgr_macros::sgr_uline!(@!!mask), // Very unclear.
+//!     "\x1B[4m182",
+//! );
+//! assert_eq!(
+//!     sgr_macros::sgr_uline!(@!, !mask), // Much clearer.
+//!     "\x1B[4m182",
+//! );
+//! ```
+//!
+//! ## Macros
+//!
+//! ### Basic Color
+//!
+//! There are eight fundamental colors supported by SGR: Black, red, green,
+//!     yellow, blue, magenta, cyan, and white. Each of these 8 colors has a
+//!     "bright" variant, leading to 16 named colors. In addition, each of these
+//!     16 named colors has two macros: One for *foreground* color, and one for
+//!     *background* color.
+//!
+//! This results in 32 basic color macros; Four macros for each of the eight
+//!     fundamental colors.
+//! ```
+//! assert_eq!(
+//!     sgr_macros::cyan!("Bright Cyan Text"),
+//!     "\x1B[36mBright Cyan Text\x1B[39m",
+//! );
+//! assert_eq!(
+//!     sgr_macros::cyan_bg!("Text on Bright Cyan"),
+//!     "\x1B[46mText on Bright Cyan\x1B[49m",
+//! );
+//! assert_eq!(
+//!     sgr_macros::cyan_bright!("Bright Cyan Text"),
+//!     "\x1B[96mBright Cyan Text\x1B[99m",
+//! );
+//! assert_eq!(
+//!     sgr_macros::cyan_bright_bg!("Text on Bright Cyan"),
+//!     "\x1B[106mText on Bright Cyan\x1B[109m",
+//! );
+//! ```
+//!
+// //! In addition, [`grey!`] and [`grey_bg!`] are provided as more clearly-named
+// //!     versions of [`bright_black!`] and [`bright_black_bg!`].
+//!
+//! ### Indexed Color
+//! [8-bit]: https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
+//!
+//! Two macros are provided for [8-bit] SGR color codes: [`color_256!`] and
+//!     [`color_256_bg!`]. These macros use all the same mode sigils as detailed
+//!     [above](#modes), but the first argument of the macro must be an 8-bit
+//!     integer, specifying the color index, followed by a semicolon.
+//! ```
+//! assert_eq!(
+//!     sgr_macros::color_256!(173; "Orange Text"),
+//!     "\x1B[38;5;173mOrange Text\x1B[39m",
+//! );
+//! assert_eq!(
+//!     sgr_macros::color_256_bg!(173; "Text on Orange"),
+//!     "\x1B[48;5;173mText on Orange\x1B[49m",
+//! );
+//! assert_eq!(
+//!     sgr_macros::color_256_bg!(173; *, "Text on Orange"),
+//!     "\x1B[48;5;173mText on Orange\x1B[m",
+//! );
+//! ```
+//!
+//! ### RGB Color
+//! [24-bit]: https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit
+//!
+//! Two macros are provided for [24-bit] SGR color codes: [`color_rgb!`] and
+//!     [`color_rgb_bg!`]. These macros use all the same mode sigils as detailed
+//!     [above](#modes), but the first argument of the macro must be an RGB
+//!     color value followed by a semicolon.
+//! ```
+//! assert_eq!(
+//!     sgr_macros::color_rgb!(0x420311; "Maroon Text"),
+//!     "\x1B[38;2;66;3;17mMaroon Text\x1B[39m",
+//! );
+//! assert_eq!(
+//!     sgr_macros::color_rgb_bg!(0x420311; "Text on Maroon"),
+//!     "\x1B[48;2;66;3;17mText on Maroon\x1B[49m",
+//! );
+//! ```
+//!
+//! For more information on the RGB color specification, see the documentation
+//!     on the [`color_rgb!`] macro.
+//!
+//! ### Style
+//!
+//! Eleven macros are provided for various "styles" of text. These typically do
+//!     not alter text color, but some aspects, such as text intensity, may be
+//!     implemented by changing color brightness or vividness.
 
 mod old;
 mod sgr;
@@ -142,8 +260,8 @@ use sgr::*;
 /// # Usage
 /// ```
 /// assert_eq!(
-///     sgr_macros::color_256!(173; "text"),
-///     "\x1B[38;5;173mtext\x1B[39m",
+///     sgr_macros::color_256!(173; "Orange Text"),
+///     "\x1B[38;5;173mOrange Text\x1B[39m",
 /// );
 /// ```
 ///
@@ -161,8 +279,8 @@ pub fn color_256(stream: TokenStream) -> TokenStream {
 /// # Usage
 /// ```
 /// assert_eq!(
-///     sgr_macros::color_256_bg!(173; "text"),
-///     "\x1B[48;5;173mtext\x1B[49m",
+///     sgr_macros::color_256_bg!(173; "Text on Orange"),
+///     "\x1B[48;5;173mText on Orange\x1B[49m",
 /// );
 /// ```
 ///
@@ -182,6 +300,11 @@ pub fn color_256_bg(stream: TokenStream) -> TokenStream {
 /// - `color_rgb!("#AABBCC"; "text")` (String Literal; Also accepts `"#ABC"`)
 /// - `color_rgb!((255, 127, 63); "text")` (Integer Tuple)
 /// - `color_rgb!((1.0, 0.5, 0.25); "text")` (Float Tuple)
+///
+/// Only three channels are supported, as an Alpha channel is not applicable to
+///     text in a terminal. The Integer Literal input format will accept a four
+///     byte value, since it is a [`u32`], but the top byte will be **ignored**:
+///     The literal `0xAABBCCDD` would be interpreted as RGB `#BBCCDD`.
 ///
 /// Refer to the [crate] documentation for more information on more advanced
 ///     macro syntax.
@@ -230,11 +353,11 @@ macro_rules! def_sgr {
 }
 
 def_sgr! {
-    /// Make text bold or increased intensity.
+    /// Make text **bold** or more intense.
     sgr_bold    = 1, 22;
-    /// Make text faint or decreased intensity.
+    /// Make text faint or less intense.
     sgr_faint   = 2, 22;
-    /// Make text italic.
+    /// Make text *italic*.
     sgr_italic  = 3, 23;
 
     /// Underline text.
@@ -246,6 +369,9 @@ def_sgr! {
 
     /// Invert foreground and background colors.
     sgr_invert  = 7, 27;
+    // /// Reverse foreground and background colors.
+    // sgr_reverse = 7, 27;
+
     /// Make text invisible. Not widely supported.
     sgr_conceal = 8, 28;
     /// Show text with a horizontal strike, crossing it out.
@@ -264,6 +390,10 @@ def_sgr! {
     black           = 30, 39;
     /// Color the enclosed text bright black (grey).
     black_bright    = 90, 99;
+    // /// Color the enclosed text grey.
+    // ///
+    // /// This macro is identical to [`black_bright!`].
+    // grey            = 90, 99;
 
     /// Color the enclosed text red.
     red             = 31, 39;
@@ -306,6 +436,10 @@ def_sgr! {
     black_bg            =  40,  49;
     /// Put the enclosed text on a bright black (grey) background.
     black_bright_bg     = 100, 109;
+    // /// Put the enclosed text on a grey background.
+    // ///
+    // /// This macro is identical to [`black_bright_bg!`].
+    // grey_bg             = 100, 109;
 
     /// Put the enclosed text on a red background.
     red_bg              =  41,  49;
