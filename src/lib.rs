@@ -152,8 +152,7 @@ use sgr::*;
 #[proc_macro]
 pub fn color_256(stream: TokenStream) -> TokenStream {
     let sgr_256 = syn::parse_macro_input!(stream as Sgr256<false>);
-    let tokens = sgr_256.tokens();
-    quote!(#tokens).into()
+    quote!(#sgr_256).into()
 }
 
 
@@ -172,8 +171,7 @@ pub fn color_256(stream: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn color_256_bg(stream: TokenStream) -> TokenStream {
     let sgr_256 = syn::parse_macro_input!(stream as Sgr256<true>);
-    let tokens = sgr_256.tokens();
-    quote!(#tokens).into()
+    quote!(#sgr_256).into()
 }
 
 
@@ -190,8 +188,7 @@ pub fn color_256_bg(stream: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn color_rgb(stream: TokenStream) -> TokenStream {
     let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<false>);
-    let tokens = sgr_rgb.tokens();
-    quote!(#tokens).into()
+    quote!(#sgr_rgb).into()
 }
 
 
@@ -206,8 +203,7 @@ pub fn color_rgb(stream: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn color_rgb_bg(stream: TokenStream) -> TokenStream {
     let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<true>);
-    let tokens = sgr_rgb.tokens();
-    quote!(#tokens).into()
+    quote!(#sgr_rgb).into()
 }
 
 
