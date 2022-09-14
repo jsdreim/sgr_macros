@@ -15,7 +15,7 @@
 //! The simplest output mode is Literal Mode. A string literal must be supplied,
 //!     and all formatting is applied directly, at compile-time. The output of
 //!     a Literal Mode macro invocation is a `&str` literal suitable for input
-//!     to `concat!()`.
+//!     to [`concat!`].
 //! ```
 //! use sgr_macros::*;
 //!
@@ -31,7 +31,7 @@
 //!
 //! The second mode is Format Mode. Invocations in this mode resolve to format
 //!     [`Arguments`], suitable as input parameters for formatting macros such
-//!     as `format!()`, `println!()`, and `write!()`. This mode is enabled by
+//!     as [`format!`], [`println!`], and [`write!`]. This mode is enabled by
 //!     placing a `%` sigil at the beginning of the call. After the sigil, a
 //!     template literal may be provided.
 //!
@@ -55,7 +55,7 @@
 //! ```
 //!
 //! The third mode is String Mode. An invocation in this mode will resolve to a
-//!     call to `format!()`, returning a fully-formed heap-allocated [`String`].
+//!     call to [`format!`], returning a fully-formed heap-allocated [`String`].
 //!     This mode is enabled with a `@` sigil at the beginning of the call, and
 //!     it may also be provided a template literal.
 //! ```
@@ -80,7 +80,7 @@
 //!
 //! By default, the result of every macro in this crate will end with another
 //!     control sequence that undoes whatever formatting was set at the start.
-//!     For example, the `sgr_bold!()` macro will emit a control sequence to
+//!     For example, the [`sgr_bold!`] macro will emit a control sequence to
 //!     set bold intensity, the input parameters to the macro, and then a second
 //!     control sequence to set normal intensity. Similarly, all coloring macros
 //!     will set the default text color when they end.
@@ -105,9 +105,9 @@
 //! );
 //!
 //! assert_eq!(
-//!     //  One way to address this is to specify that `sgr_uline!()` and
-//!     //      `sgr_italic!()` do NOT revert, and that `sgr_bold!()` reverts
-//!     //      ALL formatting.
+//!     //  One way to address this is to specify that `sgr_uline!` and
+//!     //      `sgr_italic!` should NOT revert, and that `sgr_bold!` should
+//!     //      revert ALL formatting.
 //!     sgr_bold!(* sgr_italic!(! sgr_uline!(! "WHAM"))),
 //!     "\x1B[1m\x1B[3m\x1B[4mWHAM\x1B[m",
 //! );
@@ -194,12 +194,10 @@ pub fn color_rgb(stream: TokenStream) -> TokenStream {
 
 /// Color the background with a 24-bit RGB value.
 ///
-/// Refer to [`color_rgb`] for more information on the color format.
+/// Refer to the [`color_rgb!`] macro for more information on the color format.
 ///
 /// Refer to the [crate] documentation for more information on more advanced
 ///     macro syntax.
-///
-/// [`color_rgb`]: crate::color_rgb!
 #[proc_macro]
 pub fn color_rgb_bg(stream: TokenStream) -> TokenStream {
     let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<true>);
