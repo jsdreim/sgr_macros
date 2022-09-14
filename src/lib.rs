@@ -137,36 +137,22 @@ use quote::quote;
 use sgr::*;
 
 
-/// Color the background with a 24-bit RGB value.
+/// Color text with an 8-bit indexed color value.
 ///
-/// Refer to [`color_rgb`] for more information on the color format.
-///
-/// Refer to the [crate] documentation for more information on more advanced
-///     macro syntax.
-///
-/// [`color_rgb`]: crate::color_rgb!
-#[proc_macro]
-pub fn color_rgb_bg(stream: TokenStream) -> TokenStream {
-    let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<true>);
-    let tokens = sgr_rgb.tokens();
-    quote!(#tokens).into()
-}
-
-
-/// Color text with a 24-bit RGB value.
-///
-/// There are several accepted formats for the color specification:
-/// - `color_rgb!(0xAABBCC; "text")` (Integer Literal)
-/// - `color_rgb!("#AABBCC"; "text")` (String Literal; Also accepts `"#ABC"`)
-/// - `color_rgb!((255, 127, 63); "text")` (Integer Tuple)
-/// - `color_rgb!((1.0, 0.5, 0.25); "text")` (Float Tuple)
+/// # Usage
+/// ```
+/// assert_eq!(
+///     sgr_macros::color_256!(173; "text"),
+///     "\x1B[38;5;173mtext\x1B[39m",
+/// );
+/// ```
 ///
 /// Refer to the [crate] documentation for more information on more advanced
 ///     macro syntax.
 #[proc_macro]
-pub fn color_rgb(stream: TokenStream) -> TokenStream {
-    let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<false>);
-    let tokens = sgr_rgb.tokens();
+pub fn color_256(stream: TokenStream) -> TokenStream {
+    let sgr_256 = syn::parse_macro_input!(stream as Sgr256<false>);
+    let tokens = sgr_256.tokens();
     quote!(#tokens).into()
 }
 
@@ -191,22 +177,36 @@ pub fn color_256_bg(stream: TokenStream) -> TokenStream {
 }
 
 
-/// Color text with an 8-bit indexed color value.
+/// Color text with a 24-bit RGB value.
 ///
-/// # Usage
-/// ```
-/// assert_eq!(
-///     sgr_macros::color_256!(173; "text"),
-///     "\x1B[38;5;173mtext\x1B[39m",
-/// );
-/// ```
+/// There are several accepted formats for the color specification:
+/// - `color_rgb!(0xAABBCC; "text")` (Integer Literal)
+/// - `color_rgb!("#AABBCC"; "text")` (String Literal; Also accepts `"#ABC"`)
+/// - `color_rgb!((255, 127, 63); "text")` (Integer Tuple)
+/// - `color_rgb!((1.0, 0.5, 0.25); "text")` (Float Tuple)
 ///
 /// Refer to the [crate] documentation for more information on more advanced
 ///     macro syntax.
 #[proc_macro]
-pub fn color_256(stream: TokenStream) -> TokenStream {
-    let sgr_256 = syn::parse_macro_input!(stream as Sgr256<false>);
-    let tokens = sgr_256.tokens();
+pub fn color_rgb(stream: TokenStream) -> TokenStream {
+    let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<false>);
+    let tokens = sgr_rgb.tokens();
+    quote!(#tokens).into()
+}
+
+
+/// Color the background with a 24-bit RGB value.
+///
+/// Refer to [`color_rgb`] for more information on the color format.
+///
+/// Refer to the [crate] documentation for more information on more advanced
+///     macro syntax.
+///
+/// [`color_rgb`]: crate::color_rgb!
+#[proc_macro]
+pub fn color_rgb_bg(stream: TokenStream) -> TokenStream {
+    let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<true>);
+    let tokens = sgr_rgb.tokens();
     quote!(#tokens).into()
 }
 
