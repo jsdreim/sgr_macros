@@ -247,7 +247,6 @@
 //!     not alter text color, but some aspects, such as text intensity, may be
 //!     implemented by changing color brightness or vividness.
 
-mod old;
 mod sgr;
 
 use proc_macro::TokenStream;
