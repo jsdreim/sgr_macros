@@ -137,32 +137,74 @@ use quote::quote;
 use sgr::*;
 
 
+/// Color the background with a 24-bit RGB value.
+///
+/// Refer to [`color_rgb`] for more information on the color format.
+///
+/// Refer to the [crate] documentation for more information on more advanced
+///     macro syntax.
+///
+/// [`color_rgb`]: crate::color_rgb!
 #[proc_macro]
-pub fn sgr_bg_rgb(stream: TokenStream) -> TokenStream {
+pub fn color_rgb_bg(stream: TokenStream) -> TokenStream {
     let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<true>);
     let tokens = sgr_rgb.tokens();
     quote!(#tokens).into()
 }
 
 
+/// Color text with a 24-bit RGB value.
+///
+/// There are several accepted formats for the color specification:
+/// - `color_rgb!(0xAABBCC; "text")` (Integer Literal)
+/// - `color_rgb!("#AABBCC"; "text")` (String Literal; Also accepts `"#ABC"`)
+/// - `color_rgb!((255, 127, 63); "text")` (Integer Tuple)
+/// - `color_rgb!((1.0, 0.5, 0.25); "text")` (Float Tuple)
+///
+/// Refer to the [crate] documentation for more information on more advanced
+///     macro syntax.
 #[proc_macro]
-pub fn sgr_fg_rgb(stream: TokenStream) -> TokenStream {
+pub fn color_rgb(stream: TokenStream) -> TokenStream {
     let sgr_rgb = syn::parse_macro_input!(stream as SgrRgb<false>);
     let tokens = sgr_rgb.tokens();
     quote!(#tokens).into()
 }
 
 
+/// Color the background with an 8-bit indexed color value.
+///
+/// # Usage
+/// ```
+/// assert_eq!(
+///     sgr_macros::color_256_bg!(173; "text"),
+///     "\x1B[48;5;173mtext\x1B[49m",
+/// );
+/// ```
+///
+/// Refer to the [crate] documentation for more information on more advanced
+///     macro syntax.
 #[proc_macro]
-pub fn sgr_bg_256(stream: TokenStream) -> TokenStream {
+pub fn color_256_bg(stream: TokenStream) -> TokenStream {
     let sgr_256 = syn::parse_macro_input!(stream as Sgr256<true>);
     let tokens = sgr_256.tokens();
     quote!(#tokens).into()
 }
 
 
+/// Color text with an 8-bit indexed color value.
+///
+/// # Usage
+/// ```
+/// assert_eq!(
+///     sgr_macros::color_256!(173; "text"),
+///     "\x1B[38;5;173mtext\x1B[39m",
+/// );
+/// ```
+///
+/// Refer to the [crate] documentation for more information on more advanced
+///     macro syntax.
 #[proc_macro]
-pub fn sgr_fg_256(stream: TokenStream) -> TokenStream {
+pub fn color_256(stream: TokenStream) -> TokenStream {
     let sgr_256 = syn::parse_macro_input!(stream as Sgr256<false>);
     let tokens = sgr_256.tokens();
     quote!(#tokens).into()
@@ -176,7 +218,8 @@ macro_rules! def_sgr {
     )*) => {
         $($(#[$attr])*
         ///
-        /// Refer to the [crate] documentation for more information.
+        /// Refer to the [crate] documentation for more information on more
+        ///     advanced macro syntax.
         #[proc_macro]
         pub fn $name(stream: TokenStream) -> TokenStream {
             let sgr_base = syn::parse_macro_input!(stream as SgrBase);
@@ -193,15 +236,33 @@ macro_rules! def_sgr {
 }
 
 def_sgr! {
+    /// Make text bold or increased intensity.
     sgr_bold    = 1, 22;
+    /// Make text faint or decreased intensity.
     sgr_faint   = 2, 22;
+    /// Make text italic.
     sgr_italic  = 3, 23;
+
+    /// Underline text.
     sgr_uline   = 4, 24;
+    /// Blink text slowly.
     sgr_blink   = 5, 25;
+    /// Blink text quickly. Not widely supported.
     sgr_blink2  = 6, 25;
+
+    /// Invert foreground and background colors.
     sgr_invert  = 7, 27;
+    /// Make text invisible. Not widely supported.
     sgr_conceal = 8, 28;
+    /// Show text with a horizontal strike, crossing it out.
     sgr_strike  = 9, 29;
+}
+
+def_sgr! {
+    /// Superscript. Not widely supported.
+    sgr_super   = 73, 75;
+    /// Subscript. Not widely supported.
+    sgr_sub     = 74, 75;
 }
 
 def_sgr! {
@@ -248,42 +309,42 @@ def_sgr! {
 
 def_sgr! {
     /// Put the enclosed text on a black background.
-    bg_black            =  40,  49;
+    black_bg            =  40,  49;
     /// Put the enclosed text on a bright black (grey) background.
-    bg_black_bright     = 100, 109;
+    black_bright_bg     = 100, 109;
 
     /// Put the enclosed text on a red background.
-    bg_red              =  41,  49;
+    red_bg              =  41,  49;
     /// Put the enclosed text on a bright red background.
-    bg_red_bright       = 101, 109;
+    red_bright_bg       = 101, 109;
 
     /// Put the enclosed text on a green background.
-    bg_green            =  42,  49;
+    green_bg            =  42,  49;
     /// Put the enclosed text on a bright green background.
-    bg_green_bright     = 102, 109;
+    green_bright_bg     = 102, 109;
 
     /// Put the enclosed text on a yellow background.
-    bg_yellow           =  43,  49;
+    yellow_bg           =  43,  49;
     /// Put the enclosed text on a bright yellow background.
-    bg_yellow_bright    = 103, 109;
+    yellow_bright_bg    = 103, 109;
 
     /// Put the enclosed text on a blue background.
-    bg_blue             =  44,  49;
+    blue_bg             =  44,  49;
     /// Put the enclosed text on a bright blue background.
-    bg_blue_bright      = 104, 109;
+    blue_bright_bg      = 104, 109;
 
     /// Put the enclosed text on a magenta background.
-    bg_magenta          =  45,  49;
+    magenta_bg          =  45,  49;
     /// Put the enclosed text on a bright magenta background.
-    bg_magenta_bright   = 105, 109;
+    magenta_bright_bg   = 105, 109;
 
     /// Put the enclosed text on a cyan background.
-    bg_cyan             =  46,  49;
+    cyan_bg             =  46,  49;
     /// Put the enclosed text on a bright cyan background.
-    bg_cyan_bright      = 106, 109;
+    cyan_bright_bg      = 106, 109;
 
     /// Put the enclosed text on a white background.
-    bg_white            =  47,  49;
+    white_bg            =  47,  49;
     /// Put the enclosed text on a bright white background.
-    bg_white_bright     = 107, 109;
+    white_bright_bg     = 107, 109;
 }
