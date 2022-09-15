@@ -60,3 +60,9 @@ For more information on the RGB color specification, see the documentation on th
 ### Style
 
 Eleven macros are provided for various "styles" of text. These typically do not alter text color, but some aspects, such as text intensity, may be implemented by changing color brightness or vividness.
+
+## Cargo Features
+
+If this library has the "const" Cargo feature enabled, support for the [const_format](https://crates.io/crates/const_format) crate will be available. Using SGR macros in Literal Mode, with no sigil, will then also support template literals. At the time of this writing, this will resolve to a call to the [`formatcp!`](https://docs.rs/const_format/0.2.26/const_format/macro.formatcp.html) macro. Invocations with only a single argument will continue to be implemented via `concat!` as normal.
+
+It may be important to note that the output value of `formatcp!` is **not** suitable as input to `concat!`.
