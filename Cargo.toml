@@ -1,7 +1,19 @@
 [package]
 name = "sgr_macros"
-version = "0.1.0"
+description = """Macros for ergonomically formatting text with ANSI control \
+sequences at compile-time."""
+version = "0.2.0"
 edition = "2021"
+license = "Apache-2.0"
+
+#authors =
+#repository =
+documentation = "https://docs.rs/sgr_macros"
+readme = "README.md"
+
+exclude = ["/.idea"]
+categories = ["command-line-interface"]
+keywords = ["cli", "color", "macro", "terminal", "text"]
 
 
 [lib]
