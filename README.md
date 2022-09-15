@@ -20,6 +20,8 @@ The second mode is Format Mode. An invocation in this mode will resolve to a cal
 
 The third mode is String Mode. An invocation in this mode will resolve to a call to `format!`, returning a fully-formed heap-allocated `String`. This mode is enabled with a `@` sigil at the beginning of the call, and it may also be provided a template literal.
 
+If the "const" Cargo Feature is enabled, a fourth mode is available: Const Format Mode. An invocation in this mode will resolve to a call to [`formatcp!`], returning a static string slice. This output is NOT a string literal, however, and is not suitable as input to `concat!`. This mode is enabled with a `#` sigil at the beginning of the call.
+
 ### Reversion Modes
 
 By default, the result of every macro in this crate will end with another control sequence that undoes whatever formatting was set at the start. For example, the `sgr_bold!` macro will emit a control sequence to set bold intensity, the input parameters to the macro, and then a second control sequence to set normal intensity. Similarly, all coloring macros will set the default text color when they end.
@@ -63,6 +65,7 @@ Eleven macros are provided for various "styles" of text. These typically do not 
 
 ## Cargo Features
 
-If this library has the "const" Cargo feature enabled, support for the [const_format](https://crates.io/crates/const_format) crate will be available. Using SGR macros in Literal Mode, with no sigil, will then also support template literals. At the time of this writing, this will resolve to a call to the [`formatcp!`](https://docs.rs/const_format/0.2.26/const_format/macro.formatcp.html) macro. Invocations with only a single argument will continue to be implemented via `concat!` as normal.
+If this library has the "const" Cargo feature enabled, support for the [const_format](https://crates.io/crates/const_format) crate will be available. This functionality is accessed via a new Output Mode. Using SGR macros with a `#` mode sigil will then also support template literals. At the time of this writing, this will resolve to a call to the [`formatcp!`] macro.
 
-It may be important to note that the output value of `formatcp!` is **not** suitable as input to `concat!`.
+
+[`formatcp!`]: https://docs.rs/const_format/0.2.26/const_format/macro.formatcp.html

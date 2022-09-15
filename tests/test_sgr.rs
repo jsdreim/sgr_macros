@@ -10,28 +10,25 @@ fn test_sgr_concat() {
     let text: &str = green!(! "green text non-reverted");
     assert_eq!(text, "\x1B[32mgreen text non-reverted");
 
-    // let text: &str = sgr_italic!(
-    //     "italic, ",
-    //     green!("italic green"),
-    //     ", ",
-    //     red!(!"red")
-    // );
-
-    let text: &str = sgr_italic!(concat!(
-        "italic, ",
-        green!("italic green"),
+    //  NOTE: This is not a feature, just a side effect of reading all tokens,
+    //      combined with the tokens being passed directly into `concat!`. It
+    //      does not seem to be a negative effect, but this behavior probably
+    //      should not be guaranteed going forward.
+    let text: &str = sgr_italic!(*,
+        "Italic, ",
+        green!("Italic Green"),
         ", ",
-        red!(!"red")
-    ));
+        red!(!"Italic Red"),
+    );
     // eprintln!("a {text} z");
     assert_eq!(
         text,
-        "\x1B[3mitalic, \x1B[32mitalic green\x1B[39m, \x1B[31mred\x1B[23m",
+        "\x1B[3mItalic, \x1B[32mItalic Green\x1B[39m, \x1B[31mItalic Red\x1B[m",
     );
 }
 
 
-#[cfg(feature = "const_format")]
+#[cfg(feature = "const")]
 #[test]
 fn test_sgr_const() {
     let text: &str = green!("green text");
@@ -40,7 +37,7 @@ fn test_sgr_const() {
     let text: &str = green!(! "green text non-reverted");
     assert_eq!(text, "\x1B[32mgreen text non-reverted");
 
-    let text: &str = sgr_italic!(*,
+    let text: &str = sgr_italic!(#*,
         "italic {r} {} {b}",
         green!("green"),
         b = blue!(! "blue"),
@@ -54,11 +51,11 @@ fn test_sgr_const() {
 }
 
 
-// #[cfg(not(feature = "const_format"))]
+// #[cfg(not(feature = "const"))]
 // #[test]
 // #[should_panic] // TODO: Any way to specify that it should not *compile*?
 // fn test_sgr_const_fail() {
-//     let _err: &str = sgr_italic!(*,
+//     let _err: &str = sgr_italic!(#*,
 //         "italic {r} {} {b}",
 //         green!("green"),
 //         b = blue!(! "blue"),

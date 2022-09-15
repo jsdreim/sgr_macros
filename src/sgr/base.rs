@@ -4,6 +4,7 @@ use syn::{parse::{Parse, ParseStream}, Token};
 use super::SgrFormat;
 
 
+type SigilOutputConstFormat = Token![#];
 type SigilOutputFormat = Token![%];
 type SigilOutputString = Token![@];
 type SigilRevertAll = Token![*];
@@ -12,32 +13,38 @@ type SigilRevertOff = Token![!];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Output {
-    /// Resolves to a call to `concat!()`.
+    /// Resolves to a call to [`concat!`].
+    ///
+    /// Output: `&'static str` (literal)
+    Concat,
+    /// Resolves to a call to [`::const_format::formatcp!`].
     ///
     /// Output: `&'static str`
-    Concat,
-    /// Resolves to a call to `format_args!()`.
+    ConstFormat,
+    /// Resolves to a call to [`format_args!`].
     ///
     /// Output: [`Arguments`]
     Format,
-    /// Resolves to a call to `format!()`.
+    /// Resolves to a call to [`format!`].
     ///
     /// Output: [`String`]
     String,
 }
 
 impl Output {
-    const fn accepts_template(&self) -> bool {
+    /*const fn accepts_template(&self) -> bool {
         match self {
-            Self::Concat => cfg!(feature = "const_format"),
+            Self::Concat => false,
+            Self::ConstFormat => true,
             Self::Format => true,
             Self::String => true,
         }
-    }
+    }*/
 
     const fn needs_template(&self) -> bool {
         match self {
             Self::Concat => false,
+            Self::ConstFormat => true,
             Self::Format => true,
             Self::String => true,
         }
@@ -69,6 +76,16 @@ impl Parse for Behavior {
         } else if input.parse::<SigilOutputFormat>().is_ok() {
             sigil = true;
             Output::Format
+        } else if let Ok(mode_sigil) = input.parse::<SigilOutputConstFormat>() {
+            if !cfg!(feature = "const") {
+                return Err(syn::Error::new(
+                    mode_sigil.span,
+                    "mode sigil requires the \"const\" feature",
+                ));
+            }
+
+            sigil = true;
+            Output::ConstFormat
         } else {
             Output::Concat
         };
@@ -120,7 +137,7 @@ impl Parse for SgrBase {
             } else {
                 template = Some(syn::LitStr::new("{}", Span::call_site()));
                 get_more = true;
-            }
+            }/*
         } else if behavior.output.accepts_template() {
             //  Output mode does not require a template literal, can still
             //      accept one.
@@ -134,7 +151,7 @@ impl Parse for SgrBase {
             } else {
                 template = None;
                 get_more = true;
-            }
+            }*/
         } else {
             //  Output mode does not accept a template literal.
             template = None;

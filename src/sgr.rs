@@ -41,38 +41,27 @@ pub trait SgrData {
         content.append_all(base.contents.clone());
 
         let expr = match base.behavior.output {
-            #[cfg(feature = "const_format")]
-            Output::Concat => match &base.template {
-                Some(t) => {
-                    let temp_fmt = format!("{}{}{}", fmt, t.value(), end);
-                    let temp_lit = syn::LitStr::new(&temp_fmt, t.span());
-
-                    quote!(::const_format::formatcp!(#temp_lit, #content))
-                }
-                None => quote!(concat!(concat!(#fmt, #content), #end)),
-                // None => quote!(::const_format::formatcp!(
-                //     "{}{}{}",
-                //     #fmt,
-                //     #content,
-                //     #end,
-                // )),
-            }
-            #[cfg(not(feature = "const_format"))]
-            #[allow(unreachable_patterns)]
             Output::Concat => {
                 assert!(base.template.is_none());
                 quote!(concat!(concat!(#fmt, #content), #end))
             }
+            Output::ConstFormat => {
+                let template = base.template.as_ref().unwrap();
+                let temp_fmt = format!("{fmt}{}{end}", template.value());
+                let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
+
+                quote!(::const_format::formatcp!(#temp_lit, #content))
+            }
             Output::Format => {
                 let template = base.template.as_ref().unwrap();
-                let temp_fmt = format!("{}{}{}", fmt, template.value(), end);
+                let temp_fmt = format!("{fmt}{}{end}", template.value());
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
                 quote!(format_args!(#temp_lit, #content))
             }
             Output::String => {
                 let template = base.template.as_ref().unwrap();
-                let temp_fmt = format!("{}{}{}", fmt, template.value(), end);
+                let temp_fmt = format!("{fmt}{}{end}", template.value());
                 let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
 
                 quote!(format!(#temp_lit, #content))

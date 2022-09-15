@@ -82,6 +82,30 @@
 //! assert_eq!(text, "\x1B[31mERROR: System is on fire.\x1B[39m");
 //! ```
 //!
+//! If the "const" Cargo Feature is enabled, a fourth mode is available: Const
+//!     Format Mode. An invocation in this mode will resolve to a call to
+//!     [`const_format::formatcp!`], returning a static string slice. This
+//!     output is NOT a string literal, however, and is not suitable as input to
+//!     [`concat!`]. This mode is enabled with a `#` sigil at the beginning of
+//!     the call.
+//! ```
+//! #[cfg(feature = "const")] {
+//!     use sgr_macros::*;
+//!
+//!     const TEXT: &'static str = sgr_italic!(#*,
+//!         "italic {r} {} {b}",
+//!         green!(! "green"),
+//!         b = blue!(! "blue"),
+//!         r = red!(! "red"),
+//!     );
+//!
+//!     assert_eq!(
+//!         TEXT,
+//!         "\x1B[3mitalic \x1B[31mred \x1B[32mgreen \x1B[34mblue\x1B[m",
+//!     );
+//! }
+//! ```
+//!
 //! ### Reversion Modes
 //!
 //! By default, the result of every macro in this crate will end with another
