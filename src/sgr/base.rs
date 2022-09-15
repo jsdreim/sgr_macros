@@ -102,70 +102,39 @@ impl Parse for SgrBase {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let behavior: Behavior = input.parse()?;
         let template: Option<syn::LitStr>;
-        let mut contents = TokenStream::new();
+        let get_more: bool;
 
         if behavior.output.needs_template() {
-            let expect_comma: bool;
-
-            // template = Some(input.parse()?);
-            // expect_comma = true;
-
-            if let Ok(literal) = input.parse() {
-                template = Some(literal);
-                expect_comma = true;
+            if let Ok(t) = input.parse() {
+                template = Some(t);
+                get_more = input.parse::<Token![,]>().is_ok();
             } else {
                 template = Some(syn::LitStr::new("{}", Span::call_site()));
-                expect_comma = false;
+                get_more = true;
             }
-
-            let can_continue = if expect_comma {
-                input.parse::<Token![,]>().is_ok()
-            } else {
-                true
-            };
-
-            if can_continue {
-                while let Ok(token) = input.parse::<TokenTree>() {
-                    contents.append(token);
-                }
-            }
-
-            // assert!(input.is_empty());
         } else if cfg!(feature = "const_format") {
             let fork = input.fork();
-            let literal_next = fork.parse::<syn::LitStr>().is_ok();
+            let template_next = fork.parse::<syn::LitStr>().is_ok();
             let then_comma = fork.peek(Token![,]);
-            let expect_comma: bool;
 
-            if literal_next && then_comma {
+            if template_next && then_comma {
                 template = Some(input.parse::<syn::LitStr>()?);
-                expect_comma = true;
+                get_more = input.parse::<Token![,]>().is_ok();
             } else {
                 template = None;
-                expect_comma = false;
+                get_more = true;
             }
-
-            let can_continue = if expect_comma {
-                input.parse::<Token![,]>().is_ok()
-            } else {
-                true
-            };
-
-            if can_continue {
-                while let Ok(token) = input.parse::<TokenTree>() {
-                    contents.append(token);
-                }
-            }
-
-            // assert!(input.is_empty());
         } else {
             template = None;
+            get_more = true;
+        }
 
+        let mut contents = TokenStream::new();
+
+        if get_more {
             while let Ok(token) = input.parse::<TokenTree>() {
                 contents.append(token);
             }
-
-            // assert!(input.is_empty());
         }
 
         Ok(Self { behavior, template, contents })

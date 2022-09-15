@@ -32,3 +32,5 @@ optional = true
 
 [features]
 default = []
+
+const = ["const_format"]
