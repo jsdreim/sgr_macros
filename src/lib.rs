@@ -19,8 +19,9 @@
 //!
 //! The simplest output mode is Literal Mode. A string literal must be supplied,
 //!     and all formatting is applied directly, at compile-time. The output of
-//!     a Literal Mode macro invocation is a `&str` literal suitable for input
-//!     to [`concat!`].
+//!     a Literal Mode macro invocation is a string literal, suitable for the
+//!     value of a `const`, or as input to compile-time macros (such as
+//!     [`concat!`] or another SGR macro).
 //! ```
 //! use sgr_macros::*;
 //!
@@ -34,11 +35,11 @@
 //! assert_eq!(concat, "\x1B[1mBold Text\x1B[22m, Normal Text");
 //! ```
 //!
-//! The second mode is Format Mode. Invocations in this mode resolve to format
-//!     [`Arguments`], suitable as input parameters for formatting macros such
-//!     as [`format!`], [`println!`], and [`write!`]. This mode is enabled by
-//!     placing a `%` sigil at the beginning of the call. After the sigil, a
-//!     template literal may be provided.
+//! The second mode is Format Mode. An invocation in this mode will resolve to a
+//!     call to [`format_args!`]. This will return [`Arguments`] suitable as
+//!     input to formatting macros such as [`format!`], [`println!`], and
+//!     [`write!`]. This mode is enabled by placing a `%` sigil at the beginning
+//!     of the call. After the sigil, a template literal may be provided.
 //!
 //! [`Arguments`]: std::fmt::Arguments
 //! ```
