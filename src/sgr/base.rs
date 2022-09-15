@@ -1,4 +1,5 @@
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream, TokenTree};
+use quote::TokenStreamExt;
 use syn::{parse::{Parse, ParseStream}, Token};
 use super::SgrFormat;
 
@@ -13,7 +14,7 @@ type SigilRevertOff = Token![!];
 pub enum Output {
     /// Resolves to a call to `concat!()`.
     ///
-    /// Output: `&str` (literal)
+    /// Output: `&'static str`
     Concat,
     /// Resolves to a call to `format_args!()`.
     ///
@@ -88,7 +89,7 @@ impl Parse for Behavior {
 pub struct SgrBase {
     pub behavior: Behavior,
     pub template: Option<syn::LitStr>,
-    pub contents: Vec<proc_macro2::TokenTree>,
+    pub contents: TokenStream,
 }
 
 impl SgrBase {
@@ -101,7 +102,7 @@ impl Parse for SgrBase {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let behavior: Behavior = input.parse()?;
         let template: Option<syn::LitStr>;
-        let contents;
+        let mut contents = TokenStream::new();
 
         if behavior.output.needs_template() {
             let expect_comma: bool;
@@ -123,30 +124,48 @@ impl Parse for SgrBase {
                 true
             };
 
-            let mut params = Vec::new();
-
             if can_continue {
-                while let Ok(expr) = input.parse() {
-                    params.push(expr);
+                while let Ok(token) = input.parse::<TokenTree>() {
+                    contents.append(token);
                 }
             }
 
-            contents = params;
-        } else {
-            template = None;
-            // contents = vec![input.parse()?];
+            // assert!(input.is_empty());
+        } else if cfg!(feature = "const_format") {
+            let fork = input.fork();
+            let literal_next = fork.parse::<syn::LitStr>().is_ok();
+            let then_comma = fork.peek(Token![,]);
+            let expect_comma: bool;
 
-            let mut params = Vec::new();
-
-            while let Ok(expr) = input.parse() {
-                params.push(expr);
-
-                // if input.parse::<t![,]>().is_err() {
-                //     break;
-                // }
+            if literal_next && then_comma {
+                template = Some(input.parse::<syn::LitStr>()?);
+                expect_comma = true;
+            } else {
+                template = None;
+                expect_comma = false;
             }
 
-            contents = params;
+            let can_continue = if expect_comma {
+                input.parse::<Token![,]>().is_ok()
+            } else {
+                true
+            };
+
+            if can_continue {
+                while let Ok(token) = input.parse::<TokenTree>() {
+                    contents.append(token);
+                }
+            }
+
+            // assert!(input.is_empty());
+        } else {
+            template = None;
+
+            while let Ok(token) = input.parse::<TokenTree>() {
+                contents.append(token);
+            }
+
+            // assert!(input.is_empty());
         }
 
         Ok(Self { behavior, template, contents })

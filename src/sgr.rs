@@ -38,9 +38,27 @@ pub trait SgrData {
         };
 
         let mut content = TokenStream::new();
-        content.append_all(&base.contents);
+        content.append_all(base.contents.clone());
 
         let expr = match base.behavior.output {
+            #[cfg(feature = "const_format")]
+            Output::Concat => match &base.template {
+                Some(t) => {
+                    let temp_fmt = format!("{}{}{}", fmt, t.value(), end);
+                    let temp_lit = syn::LitStr::new(&temp_fmt, t.span());
+
+                    quote!(::const_format::formatcp!(#temp_lit, #content))
+                }
+                None => quote!(concat!(concat!(#fmt, #content), #end)),
+                // None => quote!(::const_format::formatcp!(
+                //     "{}{}{}",
+                //     #fmt,
+                //     #content,
+                //     #end,
+                // )),
+            }
+            #[cfg(not(feature = "const_format"))]
+            #[allow(unreachable_patterns)]
             Output::Concat => {
                 assert!(base.template.is_none());
                 quote!(concat!(concat!(#fmt, #content), #end))

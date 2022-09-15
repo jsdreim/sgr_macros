@@ -10,18 +10,62 @@ fn test_sgr_concat() {
     let text: &str = green!(! "green text non-reverted");
     assert_eq!(text, "\x1B[32mgreen text non-reverted");
 
-    let text: &str = sgr_italic!(
+    // let text: &str = sgr_italic!(
+    //     "italic, ",
+    //     green!("italic green"),
+    //     ", ",
+    //     red!(!"red")
+    // );
+
+    let text: &str = sgr_italic!(concat!(
         "italic, ",
         green!("italic green"),
         ", ",
         red!(!"red")
-    );
+    ));
     // eprintln!("a {text} z");
     assert_eq!(
         text,
         "\x1B[3mitalic, \x1B[32mitalic green\x1B[39m, \x1B[31mred\x1B[23m",
     );
 }
+
+
+#[cfg(feature = "const_format")]
+#[test]
+fn test_sgr_const() {
+    let text: &str = green!("green text");
+    assert_eq!(text, "\x1B[32mgreen text\x1B[39m");
+
+    let text: &str = green!(! "green text non-reverted");
+    assert_eq!(text, "\x1B[32mgreen text non-reverted");
+
+    let text: &str = sgr_italic!(*,
+        "italic {r} {} {b}",
+        green!("green"),
+        b = blue!(! "blue"),
+        r = red!(! "red"),
+    );
+    // eprintln!("a {text} z");
+    assert_eq!(
+        text,
+        "\x1B[3mitalic \x1B[31mred \x1B[32mgreen\x1B[39m \x1B[34mblue\x1B[m",
+    );
+}
+
+
+// #[cfg(not(feature = "const_format"))]
+// #[test]
+// #[should_panic] // TODO: Any way to specify that it should not *compile*?
+// fn test_sgr_const_fail() {
+//     let _err: &str = sgr_italic!(*,
+//         "italic {r} {} {b}",
+//         green!("green"),
+//         b = blue!(! "blue"),
+//         r = red!(! "red"),
+//     );
+//     // eprintln!("a {_err} z");
+// }
 
 
 #[test]
