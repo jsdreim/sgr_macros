@@ -27,6 +27,14 @@ pub enum Output {
 }
 
 impl Output {
+    const fn accepts_template(&self) -> bool {
+        match self {
+            Self::Concat => cfg!(feature = "const_format"),
+            Self::Format => true,
+            Self::String => true,
+        }
+    }
+
     const fn needs_template(&self) -> bool {
         match self {
             Self::Concat => false,
@@ -113,9 +121,9 @@ impl Parse for SgrBase {
                 template = Some(syn::LitStr::new("{}", Span::call_site()));
                 get_more = true;
             }
-        } else if cfg!(feature = "const_format") {
-            //  Output mode does not require a template literal, but because
-            //      `const_format` can be used, there may still be one.
+        } else if behavior.output.accepts_template() {
+            //  Output mode does not require a template literal, can still
+            //      accept one.
             let fork = input.fork();
             let template_next = fork.parse::<syn::LitStr>().is_ok();
             let then_comma = fork.peek(Token![,]);
