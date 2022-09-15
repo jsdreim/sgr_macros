@@ -105,6 +105,7 @@ impl Parse for SgrBase {
         let get_more: bool;
 
         if behavior.output.needs_template() {
+            //  Output mode requires a template literal.
             if let Ok(t) = input.parse() {
                 template = Some(t);
                 get_more = input.parse::<Token![,]>().is_ok();
@@ -113,6 +114,8 @@ impl Parse for SgrBase {
                 get_more = true;
             }
         } else if cfg!(feature = "const_format") {
+            //  Output mode does not require a template literal, but because
+            //      `const_format` can be used, there may still be one.
             let fork = input.fork();
             let template_next = fork.parse::<syn::LitStr>().is_ok();
             let then_comma = fork.peek(Token![,]);
@@ -125,6 +128,7 @@ impl Parse for SgrBase {
                 get_more = true;
             }
         } else {
+            //  Output mode does not accept a template literal.
             template = None;
             get_more = true;
         }
