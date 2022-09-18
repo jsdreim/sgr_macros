@@ -82,6 +82,8 @@
 //! assert_eq!(text, "\x1B[31mERROR: System is on fire.\x1B[39m");
 //! ```
 //!
+//! [`const_format::formatcp!`]: https://docs.rs/const_format/0.2.26/const_format/macro.formatcp.html
+//!
 //! If the "const" Cargo Feature is enabled, a fourth mode is available: Const
 //!     Format Mode. An invocation in this mode will resolve to a call to
 //!     [`const_format::formatcp!`], returning a static string slice. This
@@ -319,11 +321,48 @@ pub fn color_256_bg(stream: TokenStream) -> TokenStream {
 
 /// Color text with a 24-bit RGB value.
 ///
+/// # Usage
+///
 /// There are several accepted formats for the color specification:
-/// - `color_rgb!(0xAABBCC; "text")` (Integer Literal)
-/// - `color_rgb!("#AABBCC"; "text")` (String Literal; Also accepts `"#ABC"`)
-/// - `color_rgb!((255, 127, 63); "text")` (Integer Tuple)
-/// - `color_rgb!((1.0, 0.5, 0.25); "text")` (Float Tuple)
+/// ```
+/// use sgr_macros::*;
+///
+/// //  Integer Literal:
+/// assert_eq!(
+///     color_rgb!(0xAABBCC; "Blue-Grey Text"),
+///     "\x1B[38;2;170;187;204mBlue-Grey Text\x1B[39m",
+/// );
+///
+/// //  String Literal:
+/// assert_eq!(
+///     color_rgb!("#AABBCC"; "Blue-Grey Text"),
+///     "\x1B[38;2;170;187;204mBlue-Grey Text\x1B[39m",
+/// );
+///
+/// //  String Literal (3-digit):
+/// assert_eq!(
+///     color_rgb!("#ABC"; "Blue-Grey Text"),
+///     "\x1B[38;2;170;187;204mBlue-Grey Text\x1B[39m",
+/// );
+///
+/// //  Integer Tuple:
+/// assert_eq!(
+///     color_rgb!((255, 127, 63); "Orange Text"),
+///     "\x1B[38;2;255;127;63mOrange Text\x1B[39m",
+/// );
+///
+/// //  Float Tuple:
+/// assert_eq!(
+///     color_rgb!((1.0, 0.5, 0.25); "Orange Text"),
+///     "\x1B[38;2;255;127;63mOrange Text\x1B[39m",
+/// );
+///
+/// //  Mixed Tuple:
+/// assert_eq!(
+///     color_rgb!((0xFF, 127, 0.25); "Orange Text"),
+///     "\x1B[38;2;255;127;63mOrange Text\x1B[39m",
+/// );
+/// ```
 ///
 /// Only three channels are supported, as an Alpha channel is not applicable to
 ///     text in a terminal. The Integer Literal input format will accept a four
