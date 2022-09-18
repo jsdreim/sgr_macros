@@ -272,7 +272,7 @@
 //!
 //! Eleven macros are provided for various "styles" of text. These typically do
 //!     not alter text color, but some aspects, such as text intensity, may be
-//!     implemented by changing color brightness or vividness.
+//!     implemented by a terminal as changing color brightness or vividness.
 
 mod sgr;
 
