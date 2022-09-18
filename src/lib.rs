@@ -365,9 +365,9 @@ pub fn color_256_bg(stream: TokenStream) -> TokenStream {
 /// ```
 ///
 /// Only three channels are supported, as an Alpha channel is not applicable to
-///     text in a terminal. The Integer Literal input format will accept a four
-///     byte value, since it is a [`u32`], but the top byte will be **ignored**:
-///     The literal `0xAABBCCDD` would be interpreted as RGB `#BBCCDD`.
+///     text in a terminal. The Integer Literal input format could hold a four
+///     byte value, since it is a [`u32`], but use of the top byte will result
+///     in a compile error.
 ///
 /// Refer to the [crate] documentation for more information on more advanced
 ///     macro syntax.

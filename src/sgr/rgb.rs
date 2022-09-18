@@ -1,9 +1,16 @@
 use std::str::FromStr;
-use syn::{
-    parenthesized,
-    parse::{Parse, ParseStream},
-    Token,
-};
+use syn::{parenthesized, parse::{Parse, ParseStream}, Token};
+
+
+const fn accept_value(value: u32) -> Result<u32, &'static str> {
+    //  TODO: Maybe make this configurable somehow. Is there any situation where
+    //      an alpha channel is meaningful for terminal text?
+    if value <= 0x_00_FF_FF_FF {
+        Ok(value)
+    } else {
+        Err("RGB color value exceeds 24 bits")
+    }
+}
 
 
 fn expand_rgb_rrggbb(rgb: &str) -> Option<String> {
@@ -84,7 +91,10 @@ impl Parse for Rgb {
             //     return Ok(rgb);
             // }
 
-            Ok(literal.base10_parse::<u32>()?.into())
+            match accept_value(literal.base10_parse()?) {
+                Ok(color) => Ok(color.into()),
+                Err(text) => Err(syn::Error::new(literal.span(), text)),
+            }
         }
     }
 }

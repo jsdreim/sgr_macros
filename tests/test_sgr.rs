@@ -110,6 +110,15 @@ fn test_sgr_rgb() {
     // eprintln!("{}", text);
     assert_eq!(text, "\x1B[48;2;66;3;17mRGB text\x1B[49m");
 
+    //  Maximum value.
+    let text = color_rgb!(0xFFFFFF; "RGB text");
+    // eprintln!("{}", text);
+    assert_eq!(text, "\x1B[38;2;255;255;255mRGB text\x1B[39m");
+
+    // //  Above maximum value; Should not compile.
+    // let text = color_rgb!(0x1000000; "RGB text");
+    // assert_eq!(text, "\x1B[38;2;255;255;255mRGB text\x1B[39m");
+
     let text = color_rgb!(0xFF55FF; "RGB text");
     // eprintln!("{}", text);
     assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
@@ -142,6 +151,20 @@ fn test_sgr_rgb() {
     assert_eq!(
         color_rgb!(0x000; "RGB text"),
         color_rgb!(0; "RGB text"),
+    );
+
+    //  Confirm equivalence between nonzero forms.
+    assert_eq!(
+        color_rgb!(0xFF7F00; "RGB text"),
+        color_rgb!("#FF7F00"; "RGB text"),
+    );
+    assert_eq!(
+        color_rgb!(0xFF7F00; "RGB text"),
+        color_rgb!((0xFF, 0x7F, 0x00); "RGB text"),
+    );
+    assert_eq!(
+        color_rgb!(0xFF7F00; "RGB text"),
+        color_rgb!((255, 127, 0); "RGB text"),
     );
 
     //  Confirm that expansion of `RGB` into `RRGGBB` works properly.
