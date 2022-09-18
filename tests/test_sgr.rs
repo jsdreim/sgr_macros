@@ -2,6 +2,14 @@ use std::fmt::Arguments;
 use sgr_macros::*;
 
 
+// macro_rules! edbg {
+//     ($v:expr) => {{
+//         eprintln!("{}", $v);
+//         $v
+//     }};
+// }
+
+
 #[test]
 fn test_sgr_concat() {
     let text: &str = green!("green text");
@@ -20,7 +28,6 @@ fn test_sgr_concat() {
         ", ",
         red!(!"Italic Red"),
     );
-    // eprintln!("a {text} z");
     assert_eq!(
         text,
         "\x1B[3mItalic, \x1B[32mItalic Green\x1B[39m, \x1B[31mItalic Red\x1B[m",
@@ -43,7 +50,6 @@ fn test_sgr_const() {
         b = blue!(! "blue"),
         r = red!(! "red"),
     );
-    // eprintln!("a {text} z");
     assert_eq!(
         text,
         "\x1B[3mitalic \x1B[31mred \x1B[32mgreen\x1B[39m \x1B[34mblue\x1B[m",
@@ -61,7 +67,6 @@ fn test_sgr_const() {
 //         b = blue!(! "blue"),
 //         r = red!(! "red"),
 //     );
-//     // eprintln!("a {_err} z");
 // }
 
 
@@ -95,7 +100,6 @@ fn test_sgr_string() {
         b = blue!(! "blue"),
         r = red!(! "red"),
     );
-    // eprintln!("a {text} z");
     assert_eq!(
         text,
         "\x1B[3mitalic \x1B[31mred \x1B[32mgreen\x1B[39m \x1B[34mblue\x1B[m",
@@ -106,42 +110,51 @@ fn test_sgr_string() {
 #[test]
 fn test_sgr_rgb() {
     //  Literal `0xRRGGBB` hex format.
-    let text = color_rgb_bg!(0x420311; "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[48;2;66;3;17mRGB text\x1B[49m");
+    assert_eq!(
+        color_rgb_bg!(0x420311; "RGB text"),
+        "\x1B[48;2;66;3;17mRGB text\x1B[49m",
+    );
 
     //  Maximum value.
-    let text = color_rgb!(0xFFFFFF; "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;255;255mRGB text\x1B[39m");
+    assert_eq!(
+        color_rgb!(0xFFFFFF; "RGB text"),
+        "\x1B[38;2;255;255;255mRGB text\x1B[39m",
+    );
 
     // //  Above maximum value; Should not compile.
-    // let text = color_rgb!(0x1000000; "RGB text");
-    // assert_eq!(text, "\x1B[38;2;255;255;255mRGB text\x1B[39m");
+    // assert_eq!(
+    //     color_rgb!(0x1000000; "RGB text"),
+    //     "\x1B[38;2;255;255;255mRGB text\x1B[39m",
+    // );
 
-    let text = color_rgb!(0xFF55FF; "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
+    assert_eq!(
+        color_rgb!(0xFF55FF; "RGB text"),
+        "\x1B[38;2;255;85;255mRGB text\x1B[39m",
+    );
 
     //  String "0xRRGGBB" hex format.
-    let text = color_rgb!("0xFF55FF"; "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
+    assert_eq!(
+        color_rgb!("0xFF55FF"; "RGB text"),
+        "\x1B[38;2;255;85;255mRGB text\x1B[39m",
+    );
 
     //  String "#RRGGBB" hex format.
-    let text = color_rgb!("#FF55FF"; "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;85;255mRGB text\x1B[39m");
+    assert_eq!(
+        color_rgb!("#FF55FF"; "RGB text"),
+        "\x1B[38;2;255;85;255mRGB text\x1B[39m",
+    );
 
     //  Tuple format (all integers).
-    let text = color_rgb!((255, 127, 0); "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;127;0mRGB text\x1B[39m");
+    assert_eq!(
+        color_rgb!((255, 127, 0); "RGB text"),
+        "\x1B[38;2;255;127;0mRGB text\x1B[39m",
+    );
 
     //  Tuple format (with floats).
-    let text = color_rgb!((1.0, 0.5, 0); "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;2;255;127;0mRGB text\x1B[39m");
+    assert_eq!(
+        color_rgb!((1.0, 0.5, 0); "RGB text"),
+        "\x1B[38;2;255;127;0mRGB text\x1B[39m",
+    );
 
     //  Confirm equivalence between zero forms.
     assert_eq!(
@@ -190,32 +203,38 @@ fn test_sgr_rgb() {
     // );
 
     //  Confirm that non-revert mode works properly.
-    let text = color_rgb_bg!(0x553355; ! "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[48;2;85;51;85mRGB text");
+    assert_eq!(
+        color_rgb_bg!(0x553355; ! "RGB text"),
+        "\x1B[48;2;85;51;85mRGB text",
+    );
 
     //  Confirm that all-revert mode works properly.
-    let text = color_rgb_bg!(0x335555; * "RGB text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[48;2;51;85;85mRGB text\x1B[m");
+    assert_eq!(
+        color_rgb_bg!(0x335555; * "RGB text"),
+        "\x1B[48;2;51;85;85mRGB text\x1B[m",
+    );
 }
 
 
 #[test]
 fn test_sgr_256() {
-    let text = color_256!(255; "Indexed-color text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;5;255mIndexed-color text\x1B[39m");
+    assert_eq!(
+        color_256!(255; "Indexed-color text"),
+        "\x1B[38;5;255mIndexed-color text\x1B[39m",
+    );
 
-    let text = color_256!(173; "Indexed-color text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[38;5;173mIndexed-color text\x1B[39m");
+    assert_eq!(
+        color_256!(173; "Indexed-color text"),
+        "\x1B[38;5;173mIndexed-color text\x1B[39m",
+    );
 
-    let text = color_256_bg!(64; ! "Indexed-color text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[48;5;64mIndexed-color text");
+    assert_eq!(
+        color_256_bg!(64; ! "Indexed-color text"),
+        "\x1B[48;5;64mIndexed-color text",
+    );
 
-    let text = color_256_bg!(128; * "Indexed-color text");
-    // eprintln!("{}", text);
-    assert_eq!(text, "\x1B[48;5;128mIndexed-color text\x1B[m");
+    assert_eq!(
+        color_256_bg!(128; * "Indexed-color text"),
+        "\x1B[48;5;128mIndexed-color text\x1B[m",
+    );
 }
