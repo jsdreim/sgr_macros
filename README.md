@@ -1,3 +1,9 @@
+[![crates.io]](https://crates.io/crates/sgr_macros)
+[![docs.rs]](https://docs.rs/sgr_macros)
+
+[crates.io]: https://img.shields.io/crates/v/sgr_macros?logo=rust
+[docs.rs]: https://docs.rs/sgr_macros/badge.svg
+
 # SGR Macros
 
 [ANSI escape codes]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
