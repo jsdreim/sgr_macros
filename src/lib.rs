@@ -187,7 +187,7 @@
 //! let mask: u8 = 0b01001001;
 //!
 //! assert_eq!(
-//!     sgr_macros::sgr_uline!(@ !mask), // Interpreted `!` as no-revert.
+//!     sgr_macros::sgr_uline!(@ !mask), // Interpreted `!` as no-revert sigil.
 //!     "\x1B[4m73",
 //! );
 //! assert_eq!(
