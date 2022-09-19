@@ -4,6 +4,11 @@
 //!     italics and underlining. Extensive information on the specific sequences
 //!     is available on the Wikipedia page for [ANSI escape codes].
 //!
+//! Note that not all terminal emulators will support all of the effects
+//!     provided in this crate. These macros exist solely to apply the relevant
+//!     control sequences, and have no capability to discern whether the
+//!     sequences will be meaningful.
+//!
 //! [ANSI escape codes]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 //!
 //! ## Modes
@@ -11,9 +16,9 @@
 //! There are three "output modes" to every macro in this crate: Literal,
 //!     Format, and String. These determine the output type of the macro, and
 //!     whether it can be called in `const` contexts. Additionally, there are
-//!     also three "reversion modes": Single, Total, and None. These determine
-//!     what is to be done at the end of a macro call --- the formatting state
-//!     that should be *reverted*.
+//!     three "reversion modes": Single, Total, and None. These determine what
+//!     is to be done at the end of a macro call --- the formatting state that
+//!     should be *reverted*.
 //!
 //! ### Output Modes
 //!
@@ -182,12 +187,12 @@
 //! let mask: u8 = 0b01001001;
 //!
 //! assert_eq!(
-//!     sgr_macros::sgr_uline!(@!!mask), // Very unclear.
-//!     "\x1B[4m182",
+//!     sgr_macros::sgr_uline!(@ !mask), // Interpreted `!` as no-revert.
+//!     "\x1B[4m73",
 //! );
 //! assert_eq!(
-//!     sgr_macros::sgr_uline!(@!, !mask), // Much clearer.
-//!     "\x1B[4m182",
+//!     sgr_macros::sgr_uline!(@, !mask), // Interpreted `!` as NOT operator.
+//!     "\x1B[4m182\x1B[24m",
 //! );
 //! ```
 //!

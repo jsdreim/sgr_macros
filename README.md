@@ -12,6 +12,8 @@ This crate provides macros for ergonomically wrapping text in ANSI control seque
 
 More extensive code examples are available within the crate documentation.
 
+Note that not all terminal emulators will support all of the effects provided in this crate. These macros exist solely to apply the relevant control sequences, and have no capability to discern whether the sequences will be meaningful.
+
 ## Modes
 
 There are three "output modes" to every macro in this crate: Literal, Format, and String. These determine the output type of the macro, and whether it can be called in `const` contexts.
