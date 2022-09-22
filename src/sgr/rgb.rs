@@ -26,7 +26,7 @@ fn expand_rgb_rrggbb(rgb: &str) -> Option<String> {
 }
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Rgb {
     pub a: u8,
     pub r: u8,
