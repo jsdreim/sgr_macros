@@ -2,7 +2,7 @@
 name = "sgr_macros"
 description = """Macros for ergonomically formatting text with ANSI control \
 sequences at compile-time."""
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 license = "Apache-2.0"
 

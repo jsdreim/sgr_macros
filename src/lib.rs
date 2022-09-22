@@ -396,6 +396,48 @@ pub fn color_rgb_bg(stream: TokenStream) -> TokenStream {
 }
 
 
+/// Reset all SGR parameters.
+///
+/// # Usage
+///
+/// This macro takes no input and resolves to a string literal of `"\x1B[m"`. It
+///     is intended to be used in conjunction with "plain"-style invocations of
+///     other macros.
+///
+/// This sort of pattern is most useful when frequently switching back and forth
+///     between different colors.
+/// ```
+/// assert_eq!(
+///     sgr_macros::sgr_reset!(),
+///     "\x1B[m",
+/// );
+///
+/// fn partial_success(success: &str, failure: &str) -> String {
+///     use sgr_macros::*;
+///
+///     format!(
+///         "{y}Program successfully {g}{success}{y}, \
+///         but then failed to {r}{failure}{y}.{x}",
+///         g = green!(!),
+///         r = red!(!),
+///         y = yellow!(!),
+///         x = sgr_reset!(),
+///     )
+/// }
+///
+/// assert_eq!(
+///     partial_success("closed", "restart"),
+///     "\x1B[33mProgram successfully \x1B[32mclosed\x1B[33m, \
+///     but then failed to \x1B[31mrestart\x1B[33m.\x1B[m",
+/// );
+/// ```
+#[proc_macro]
+pub fn sgr_reset(stream: TokenStream) -> TokenStream {
+    let reset = syn::parse_macro_input!(stream as SgrReset);
+    quote!(#reset).into()
+}
+
+
 macro_rules! def_sgr {
     ($(
     $(#[$attr:meta])*

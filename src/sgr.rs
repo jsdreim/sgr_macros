@@ -3,7 +3,7 @@ mod rgb;
 
 pub use base::*;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, TokenStreamExt, ToTokens};
 use syn::{parse::{Parse, ParseStream}, Token};
 use rgb::Rgb;
@@ -11,7 +11,19 @@ use rgb::Rgb;
 
 macro_rules! sgr {
     ($($param:literal)?) => { concat!("\x1B[", $($param,)? "m") };
-    // ($($param:literal);*) => { concat!("\x1B[", $($param, ";",)* "m") };
+}
+
+
+pub struct SgrReset;
+
+impl Parse for SgrReset {
+    fn parse(_: ParseStream) -> syn::Result<Self> { Ok(Self) }
+}
+
+impl ToTokens for SgrReset {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        syn::LitStr::new(sgr!(), Span::call_site()).to_tokens(tokens)
+    }
 }
 
 
