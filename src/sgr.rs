@@ -40,8 +40,6 @@ pub trait SgrData {
     fn fmt_closing(&self) -> String;
 
     fn tokens(&self) -> TokenStream {
-        let mut tokens = TokenStream::new();
-
         let base = self.base();
         let fmt: String = format!(sgr!("{}"), self.fmt_opening());
         let end: String = match base.behavior.revert {
@@ -53,7 +51,7 @@ pub trait SgrData {
         let mut content = TokenStream::new();
         content.append_all(base.contents.clone());
 
-        let expr = match base.behavior.output {
+        match base.behavior.output {
             Output::Concat => {
                 assert!(base.template.is_none());
                 quote!(concat!(concat!(#fmt, #content), #end))
@@ -79,10 +77,7 @@ pub trait SgrData {
 
                 quote!(format!(#temp_lit, #content))
             }
-        };
-
-        tokens.extend(expr);
-        tokens
+        }
     }
 }
 
