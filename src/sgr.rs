@@ -1,4 +1,5 @@
 mod base;
+mod color;
 mod rgb;
 
 pub use base::*;
