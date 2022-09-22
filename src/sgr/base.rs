@@ -32,7 +32,7 @@ pub enum Output {
 }
 
 impl Output {
-    /*const fn accepts_template(&self) -> bool {
+    /*pub const fn accepts_template(&self) -> bool {
         match self {
             Self::Concat => false,
             Self::ConstFormat => true,
@@ -41,12 +41,35 @@ impl Output {
         }
     }*/
 
-    const fn needs_template(&self) -> bool {
+    pub const fn needs_template(&self) -> bool {
         match self {
             Self::Concat => false,
             Self::ConstFormat => true,
             Self::Format => true,
             Self::String => true,
+        }
+    }
+
+    pub fn has_sigil(&self) -> bool { *self != Self::Concat }
+}
+
+impl Parse for Output {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.parse::<SigilOutputString>().is_ok() {
+            Ok(Self::String)
+        } else if input.parse::<SigilOutputFormat>().is_ok() {
+            Ok(Self::Format)
+        } else if let Ok(mode_sigil) = input.parse::<SigilOutputConstFormat>() {
+            if !cfg!(feature = "const") {
+                return Err(syn::Error::new(
+                    mode_sigil.span,
+                    "mode sigil requires the \"const\" feature",
+                ));
+            }
+
+            Ok(Self::ConstFormat)
+        } else {
+            Ok(Self::Concat)
         }
     }
 }
@@ -59,6 +82,22 @@ pub enum Revert {
     None,
 }
 
+impl Revert {
+    pub fn has_sigil(&self) -> bool { *self != Self::One }
+}
+
+impl Parse for Revert {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.parse::<SigilRevertOff>().is_ok() {
+            Ok(Self::None)
+        } else if input.parse::<SigilRevertAll>().is_ok() {
+            Ok(Self::All)
+        } else {
+            Ok(Self::One)
+        }
+    }
+}
+
 
 #[derive(Clone, Copy, Debug)]
 pub struct Behavior {
@@ -68,39 +107,10 @@ pub struct Behavior {
 
 impl Parse for Behavior {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut sigil = false;
+        let output: Output = input.parse()?;
+        let revert: Revert = input.parse()?;
 
-        let output = if input.parse::<SigilOutputString>().is_ok() {
-            sigil = true;
-            Output::String
-        } else if input.parse::<SigilOutputFormat>().is_ok() {
-            sigil = true;
-            Output::Format
-        } else if let Ok(mode_sigil) = input.parse::<SigilOutputConstFormat>() {
-            if !cfg!(feature = "const") {
-                return Err(syn::Error::new(
-                    mode_sigil.span,
-                    "mode sigil requires the \"const\" feature",
-                ));
-            }
-
-            sigil = true;
-            Output::ConstFormat
-        } else {
-            Output::Concat
-        };
-
-        let revert = if input.parse::<SigilRevertOff>().is_ok() {
-            sigil = true;
-            Revert::None
-        } else if input.parse::<SigilRevertAll>().is_ok() {
-            sigil = true;
-            Revert::All
-        } else {
-            Revert::One
-        };
-
-        if sigil {
+        if output.has_sigil() || revert.has_sigil() {
             //  Accept, but do not require, a comma after mode sigils.
             input.parse::<Token![,]>().ok();
         }
