@@ -194,6 +194,14 @@ pub enum ColorRevert {
 }
 
 impl ColorRevert {
+    fn mix(revert: Option<Self>, set: bool) -> Option<Self> {
+        if set || matches!(revert, Some(Self::Set(_))) {
+            revert
+        } else {
+            None
+        }
+    }
+
     fn params(&self, bg: bool) -> Option<String> {
         match self {
             Self::Set(color) => Some(color.params(bg)),
@@ -358,8 +366,8 @@ impl SgrData for SgrColor {
     fn fmt_closing(&self) -> Self::CodeClosing {
         match self.color_revert {
             ColorRevertPair::Pair { fg, bg } => ColorRevertPair::Pair {
-                fg: self.color_set.fg.and(fg),
-                bg: self.color_set.bg.and(bg),
+                fg: ColorRevert::mix(fg, self.color_set.fg.is_some()),
+                bg: ColorRevert::mix(bg, self.color_set.bg.is_some()),
             },
             other => other,
         }

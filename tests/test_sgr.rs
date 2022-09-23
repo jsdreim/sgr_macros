@@ -283,4 +283,14 @@ fn test_unified_color() {
         edbg!(color!(73 in 0xFF7F00; "Indexed Text on RGB")),
         "\x1B[38;5;73;48;2;255;127;0mIndexed Text on RGB\x1B[39;49m",
     );
+
+    //  Test revert specification.
+    assert_eq!(
+        edbg!(color!("green"; "Green Text"; in "red")),
+        "\x1B[32mGreen Text\x1B[39;41m",
+    );
+    assert_eq!(
+        edbg!(color!("green"; "Green Text"; "bright yellow" in "red")),
+        "\x1B[32mGreen Text\x1B[93;41m",
+    );
 }
