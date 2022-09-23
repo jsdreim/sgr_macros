@@ -286,6 +286,25 @@ use quote::quote;
 use sgr::*;
 
 
+/// Color text, with precise control over the revert state.
+///
+/// # Usage
+/// ```
+/// assert_eq!(
+///     sgr_macros::color!(173; "Orange Text"),
+///     "\x1B[38;5;173mOrange Text\x1B[39m",
+/// );
+/// ```
+///
+/// Refer to the [crate] documentation for more information on more advanced
+///     macro syntax.
+#[proc_macro]
+pub fn color(stream: TokenStream) -> TokenStream {
+    let sgr_color = syn::parse_macro_input!(stream as SgrColor);
+    quote!(#sgr_color).into()
+}
+
+
 /// Color text with an 8-bit indexed color value.
 ///
 /// # Usage

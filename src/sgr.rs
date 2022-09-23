@@ -8,6 +8,7 @@ mod rgb;
 mod traits;
 
 pub use base::*;
+pub use color::SgrColor;
 pub use traits::*;
 
 use std::borrow::Cow;

@@ -2,6 +2,41 @@ use proc_macro2::TokenTree;
 use super::*;
 
 
+const COLOR_SET: u8 = 38;
+const COLOR_RESET: u8 = 39;
+
+const OFFSET_BG: u8 = 10;
+const OFFSET_BRIGHT: u8 = 60;
+
+
+const fn color_bg(color: u8, bg: bool) -> u8 {
+    if bg {
+        color + OFFSET_BG
+    } else {
+        color
+    }
+}
+
+
+const fn color_bright(color: u8, bright: bool) -> u8 {
+    if bright {
+        color + OFFSET_BRIGHT
+    } else {
+        color
+    }
+}
+
+
+const fn color_set(bg: bool) -> u8 {
+    color_bg(COLOR_SET, bg)
+}
+
+
+const fn color_reset(bg: bool) -> u8 {
+    color_bg(COLOR_RESET, bg)
+}
+
+
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ColorNamed {
@@ -20,29 +55,16 @@ pub enum ColorNamed {
 pub struct ColorBasic {
     color: ColorNamed,
     bright: bool,
-    // background: bool,
 }
 
-// impl ColorBasic {
-//     pub const fn code(&self) -> u8 {
-//         let mut color = self.color as u8;
-//
-//         if self.bright { color += 60; }
-//         // if self.background { color += 10; }
-//
-//         color
-//     }
-//
-//     // pub const fn bg(mut self) -> Self {
-//     //     self.background = true;
-//     //     self
-//     // }
-//     //
-//     // pub const fn fg(mut self) -> Self {
-//     //     self.background = false;
-//     //     self
-//     // }
-// }
+impl ColorBasic {
+    pub const fn code(&self, bg: bool) -> u8 {
+        let color = self.color as u8;
+        let color = color_bright(color, self.bright);
+        let color = color_bg(color, bg);
+        color
+    }
+}
 
 impl Parse for ColorBasic {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -97,8 +119,15 @@ pub enum ColorAny {
 }
 
 impl ColorAny {
-    fn params(&self) -> String {
-        todo!()
+    fn params(&self, bg: bool) -> String {
+        match self {
+            Self::Basic(color) => format!("{}", color.code(bg)),
+            Self::Indexed(idx) => format!("{};5;{}", color_set(bg), idx),
+            Self::Rgb(rgb) => {
+                let Rgb { a: _, r, g, b } = rgb;
+                format!("{};2;{};{};{}", color_set(bg), r, g, b)
+            }
+        }
     }
 }
 
@@ -116,12 +145,12 @@ impl Parse for ColorAny {
 
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct ColorPair {
+pub struct ColorSetPair {
     pub fg: Option<ColorAny>,
     pub bg: Option<ColorAny>,
 }
 
-impl Parse for ColorPair {
+impl Parse for ColorSetPair {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let start = input.span();
 
@@ -139,16 +168,16 @@ impl Parse for ColorPair {
     }
 }
 
-impl SgrCode for ColorPair {
+impl SgrCode for ColorSetPair {
     fn params(&self) -> Option<Cow<str>> {
         let mut colors = Vec::with_capacity(2);
 
         if let Some(color) = &self.fg {
-            colors.push(color.params());
+            colors.push(color.params(false));
         }
 
         if let Some(color) = &self.bg {
-            colors.push(color.params());
+            colors.push(color.params(true));
         }
 
         Some(Cow::Owned(colors.join(";")))
@@ -157,45 +186,99 @@ impl SgrCode for ColorPair {
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ColorPairRevert {
-    Set(ColorPair),
+pub enum ColorRevert {
+    Set(ColorAny),
     Reset,
-    ResetAll,
-    ResetNone,
+    NoReset,
 }
 
-impl Parse for ColorPairRevert {
+impl ColorRevert {
+    fn params(&self, bg: bool) -> Option<String> {
+        match self {
+            Self::Set(color) => Some(color.params(bg)),
+            Self::Reset => Some(format!("{}", color_reset(bg))),
+            Self::NoReset => None,
+        }
+    }
+}
+
+impl Parse for ColorRevert {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        if input.fork().parse::<ColorPair>().is_ok() {
-            Ok(Self::Set(input.parse()?))
-        } else if input.parse::<Token![!]>().is_ok() {
-            Ok(Self::ResetNone)
-        } else if input.parse::<Token![*]>().is_ok() {
-            Ok(Self::ResetAll)
+        if input.parse::<Token![!]>().is_ok() {
+            Ok(Self::NoReset)
+        } else if let Ok(color) = input.parse() {
+            Ok(Self::Set(color))
         } else {
             Ok(Self::Reset)
         }
     }
 }
 
-impl SgrCode for ColorPairRevert {
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ColorRevertPair {
+    Pair {
+        fg: Option<ColorRevert>,
+        bg: Option<ColorRevert>,
+    },
+    ResetAll,
+    ResetNone,
+}
+
+impl Parse for ColorRevertPair {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.parse::<Token![*]>().is_ok() {
+            Ok(Self::ResetAll)
+        } else {
+            let fg = input.parse().ok();
+            let bg = match input.parse::<Token![in]>() {
+                Ok(_) => Some(input.parse()?),
+                Err(_) => None,
+            };
+
+            if fg.is_none() && bg.is_none() {
+                Ok(Self::ResetNone)
+            } else {
+                Ok(Self::Pair { fg, bg })
+            }
+        }
+    }
+}
+
+impl SgrCode for ColorRevertPair {
     fn params(&self) -> Option<Cow<str>> {
-        todo!()
+        match self {
+            Self::Pair { fg, bg } => {
+                let mut colors = Vec::with_capacity(2);
+
+                if let Some(color) = fg {
+                    colors.extend(color.params(false));
+                }
+
+                if let Some(color) = bg {
+                    colors.extend(color.params(true));
+                }
+
+                Some(Cow::Owned(colors.join(";")))
+            }
+            Self::ResetAll => Some(Cow::Borrowed("39;49")),
+            Self::ResetNone => None,
+        }
     }
 }
 
 
 pub struct SgrColor {
-    pub color_set: ColorPair,
+    pub color_set: ColorSetPair,
     pub output: Output,
     pub template: Option<syn::LitStr>,
     pub contents: TokenStream,
-    pub color_revert: ColorPairRevert,
+    pub color_revert: ColorRevertPair,
 }
 
 impl Parse for SgrColor {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let color_set: ColorPair = input.parse()?;
+        let color_set: ColorSetPair = input.parse()?;
         input.parse::<Token![;]>()?;
         let output: Output = input.parse()?;
 
@@ -234,12 +317,12 @@ impl Parse for SgrColor {
             }
         }
 
-        let color_revert: ColorPairRevert;
+        let color_revert: ColorRevertPair;
 
         if input.parse::<Token![;]>().is_ok() {
             color_revert = input.parse()?;
         } else {
-            color_revert = ColorPairRevert::Reset;
+            color_revert = ColorRevertPair::ResetAll;
         }
 
         Ok(Self {
@@ -253,26 +336,32 @@ impl Parse for SgrColor {
 }
 
 impl SgrData for SgrColor {
-    type CodeOpening = ColorPair;
-    type CodeClosing = ColorPairRevert;
+    type CodeOpening = ColorSetPair;
+    type CodeClosing = ColorRevertPair;
 
     fn fmt_opening(&self) -> Self::CodeOpening {
-        todo!()
+        self.color_set
     }
 
     fn fmt_closing(&self) -> Self::CodeClosing {
-        todo!()
+        self.color_revert
     }
 
     fn contents(&self) -> TokenStream {
-        todo!()
+        self.contents.clone()
     }
 
     fn template(&self) -> Option<syn::LitStr> {
-        todo!()
+        self.template.clone()
     }
 
     fn output(&self) -> Output {
-        todo!()
+        self.output
+    }
+}
+
+impl ToTokens for SgrColor {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.tokens().to_tokens(tokens);
     }
 }
