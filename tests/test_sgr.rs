@@ -2,12 +2,12 @@ use std::fmt::Arguments;
 use sgr_macros::*;
 
 
-// macro_rules! edbg {
-//     ($v:expr) => {{
-//         eprintln!("{}", $v);
-//         $v
-//     }};
-// }
+macro_rules! edbg {
+    ($v:expr) => {{
+        eprintln!("{}", $v);
+        $v
+    }};
+}
 
 
 #[test]
@@ -236,5 +236,51 @@ fn test_sgr_256() {
     assert_eq!(
         color_256_bg!(128; * "Indexed-color text"),
         "\x1B[48;5;128mIndexed-color text\x1B[m",
+    );
+}
+
+
+#[test]
+fn test_unified_color() {
+    //  Test all foreground set modes.
+    assert_eq!(
+        edbg!(color!("green"; "Green Text")),
+        "\x1B[32mGreen Text\x1B[39m",
+    );
+    assert_eq!(
+        edbg!(color!(73; "Indexed Text")),
+        "\x1B[38;5;73mIndexed Text\x1B[39m",
+    );
+    assert_eq!(
+        edbg!(color!(0xFF7F00; "RGB Text")),
+        "\x1B[38;2;255;127;0mRGB Text\x1B[39m",
+    );
+
+    //  Test all background set modes.
+    assert_eq!(
+        edbg!(color!(in "green"; "Text on Green")),
+        "\x1B[42mText on Green\x1B[49m",
+    );
+    assert_eq!(
+        edbg!(color!(in 73; "Text on Indexed")),
+        "\x1B[48;5;73mText on Indexed\x1B[49m",
+    );
+    assert_eq!(
+        edbg!(color!(in 0xFF7F00; "Text on RGB")),
+        "\x1B[48;2;255;127;0mText on RGB\x1B[49m",
+    );
+
+    //  Test combined fg+bg set modes.
+    assert_eq!(
+        edbg!(color!("bright yellow" in "red"; "Yellow Text on Red")),
+        "\x1B[93;41mYellow Text on Red\x1B[39;49m",
+    );
+    assert_eq!(
+        edbg!(color!(0xFF7F00 in 73; "RGB Text on Indexed")),
+        "\x1B[38;2;255;127;0;48;5;73mRGB Text on Indexed\x1B[39;49m",
+    );
+    assert_eq!(
+        edbg!(color!(73 in 0xFF7F00; "Indexed Text on RGB")),
+        "\x1B[38;5;73;48;2;255;127;0mIndexed Text on RGB\x1B[39;49m",
     );
 }
