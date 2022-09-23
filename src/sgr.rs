@@ -1,18 +1,20 @@
-mod base;
-mod color;
-mod rgb;
-
-pub use base::*;
-
-use proc_macro2::{Span, TokenStream};
-use quote::{quote, TokenStreamExt, ToTokens};
-use syn::{parse::{Parse, ParseStream}, Token};
-use rgb::Rgb;
-
-
 macro_rules! sgr {
     ($($param:literal)?) => { concat!("\x1B[", $($param,)? "m") };
 }
+
+mod base;
+mod color;
+mod rgb;
+mod traits;
+
+pub use base::*;
+pub use traits::*;
+
+use std::borrow::Cow;
+use proc_macro2::{Span, TokenStream};
+use quote::{TokenStreamExt, ToTokens};
+use syn::{parse::{Parse, ParseStream}, Token};
+use rgb::Rgb;
 
 
 pub struct SgrReset;
@@ -34,49 +36,17 @@ const fn color_bg<const BG: bool>() -> u8 {
 }
 
 
-pub trait SgrData {
-    fn base(&self) -> &SgrBase;
-    fn fmt_opening(&self) -> String;
-    fn fmt_closing(&self) -> String;
+pub struct StringRevert {
+    pub revert: Revert,
+    pub string: String,
+}
 
-    fn tokens(&self) -> TokenStream {
-        let base = self.base();
-        let fmt: String = format!(sgr!("{}"), self.fmt_opening());
-        let end: String = match base.behavior.revert {
-            Revert::One => format!(sgr!("{}"), self.fmt_closing()),
-            Revert::All => String::from(sgr!()),
-            Revert::None => String::new(),
-        };
-
-        let mut content = TokenStream::new();
-        content.append_all(base.contents.clone());
-
-        match base.behavior.output {
-            Output::Concat => {
-                assert!(base.template.is_none());
-                quote!(concat!(concat!(#fmt, #content), #end))
-            }
-            Output::ConstFormat => {
-                let template = base.template.as_ref().unwrap();
-                let temp_fmt = format!("{fmt}{}{end}", template.value());
-                let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
-
-                quote!(::const_format::formatcp!(#temp_lit, #content))
-            }
-            Output::Format => {
-                let template = base.template.as_ref().unwrap();
-                let temp_fmt = format!("{fmt}{}{end}", template.value());
-                let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
-
-                quote!(format_args!(#temp_lit, #content))
-            }
-            Output::String => {
-                let template = base.template.as_ref().unwrap();
-                let temp_fmt = format!("{fmt}{}{end}", template.value());
-                let temp_lit = syn::LitStr::new(&temp_fmt, template.span());
-
-                quote!(format!(#temp_lit, #content))
-            }
+impl SgrCode for StringRevert {
+    fn params(&self) -> Option<Cow<str>> {
+        match self.revert {
+            Revert::One => Some(Cow::Borrowed(&self.string)),
+            Revert::All => Some(Cow::Borrowed("")),
+            Revert::None => None,
         }
     }
 }
@@ -89,9 +59,31 @@ pub struct SgrFormat {
 }
 
 impl SgrData for SgrFormat {
-    fn base(&self) -> &SgrBase { &self.base }
-    fn fmt_opening(&self) -> String { self.opening.clone() }
-    fn fmt_closing(&self) -> String { self.closing.clone() }
+    type CodeOpening = String;
+    type CodeClosing = StringRevert;
+
+    fn fmt_opening(&self) -> Self::CodeOpening {
+        self.opening.clone()
+    }
+
+    fn fmt_closing(&self) -> Self::CodeClosing {
+        StringRevert {
+            revert: self.base.behavior.revert,
+            string: self.closing.clone(),
+        }
+    }
+
+    fn contents(&self) -> TokenStream {
+        self.base.contents.clone()
+    }
+
+    fn template(&self) -> Option<syn::LitStr> {
+        self.base.template.clone()
+    }
+
+    fn output(&self) -> Output {
+        self.base.behavior.output
+    }
 }
 
 impl ToTokens for SgrFormat {
@@ -107,15 +99,31 @@ pub struct SgrRgb<const BG: bool> {
 }
 
 impl<const BG: bool> SgrData for SgrRgb<BG> {
-    fn base(&self) -> &SgrBase { &self.base }
+    type CodeOpening = String;
+    type CodeClosing = StringRevert;
 
-    fn fmt_opening(&self) -> String {
+    fn fmt_opening(&self) -> Self::CodeOpening {
         let Rgb { a: _, r, g, b } = &self.rgb;
         format!("{};2;{};{};{}", color_bg::<BG>(), r, g, b)
     }
 
-    fn fmt_closing(&self) -> String {
-        format!("{}", color_bg::<BG>() + 1)
+    fn fmt_closing(&self) -> Self::CodeClosing {
+        StringRevert {
+            revert: self.base.behavior.revert,
+            string: format!("{}", color_bg::<BG>() + 1),
+        }
+    }
+
+    fn contents(&self) -> TokenStream {
+        self.base.contents.clone()
+    }
+
+    fn template(&self) -> Option<syn::LitStr> {
+        self.base.template.clone()
+    }
+
+    fn output(&self) -> Output {
+        self.base.behavior.output
     }
 }
 
@@ -142,14 +150,30 @@ pub struct Sgr256<const BG: bool> {
 }
 
 impl<const BG: bool> SgrData for Sgr256<BG> {
-    fn base(&self) -> &SgrBase { &self.base }
+    type CodeOpening = String;
+    type CodeClosing = StringRevert;
 
-    fn fmt_opening(&self) -> String {
+    fn fmt_opening(&self) -> Self::CodeOpening {
         format!("{};5;{}", color_bg::<BG>(), self.color)
     }
 
-    fn fmt_closing(&self) -> String {
-        format!("{}", color_bg::<BG>() + 1)
+    fn fmt_closing(&self) -> Self::CodeClosing {
+        StringRevert {
+            revert: self.base.behavior.revert,
+            string: format!("{}", color_bg::<BG>() + 1),
+        }
+    }
+
+    fn contents(&self) -> TokenStream {
+        self.base.contents.clone()
+    }
+
+    fn template(&self) -> Option<syn::LitStr> {
+        self.base.template.clone()
+    }
+
+    fn output(&self) -> Output {
+        self.base.behavior.output
     }
 }
 
