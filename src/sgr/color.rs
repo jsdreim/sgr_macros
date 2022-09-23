@@ -96,6 +96,12 @@ pub enum ColorAny {
     Rgb(Rgb),
 }
 
+impl ColorAny {
+    fn params(&self) -> String {
+        todo!()
+    }
+}
+
 impl Parse for ColorAny {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if let Ok(color) = input.parse::<ColorBasic>() {
@@ -135,20 +141,30 @@ impl Parse for ColorPair {
 
 impl SgrCode for ColorPair {
     fn params(&self) -> Option<Cow<str>> {
-        todo!()
+        let mut colors = Vec::with_capacity(2);
+
+        if let Some(color) = &self.fg {
+            colors.push(color.params());
+        }
+
+        if let Some(color) = &self.bg {
+            colors.push(color.params());
+        }
+
+        Some(Cow::Owned(colors.join(";")))
     }
 }
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ColorRevert {
+pub enum ColorPairRevert {
     Set(ColorPair),
     Reset,
     ResetAll,
     ResetNone,
 }
 
-impl Parse for ColorRevert {
+impl Parse for ColorPairRevert {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.fork().parse::<ColorPair>().is_ok() {
             Ok(Self::Set(input.parse()?))
@@ -162,7 +178,7 @@ impl Parse for ColorRevert {
     }
 }
 
-impl SgrCode for ColorRevert {
+impl SgrCode for ColorPairRevert {
     fn params(&self) -> Option<Cow<str>> {
         todo!()
     }
@@ -174,7 +190,7 @@ pub struct SgrColor {
     pub output: Output,
     pub template: Option<syn::LitStr>,
     pub contents: TokenStream,
-    pub color_revert: ColorRevert,
+    pub color_revert: ColorPairRevert,
 }
 
 impl Parse for SgrColor {
@@ -218,12 +234,12 @@ impl Parse for SgrColor {
             }
         }
 
-        let color_revert: ColorRevert;
+        let color_revert: ColorPairRevert;
 
         if input.parse::<Token![;]>().is_ok() {
             color_revert = input.parse()?;
         } else {
-            color_revert = ColorRevert::Reset;
+            color_revert = ColorPairRevert::Reset;
         }
 
         Ok(Self {
@@ -238,7 +254,7 @@ impl Parse for SgrColor {
 
 impl SgrData for SgrColor {
     type CodeOpening = ColorPair;
-    type CodeClosing = ColorRevert;
+    type CodeClosing = ColorPairRevert;
 
     fn fmt_opening(&self) -> Self::CodeOpening {
         todo!()
