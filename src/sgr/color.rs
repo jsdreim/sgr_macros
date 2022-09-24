@@ -152,59 +152,35 @@ impl Parse for ColorAny {
 
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct ColorSetPair {
-    pub fg: Option<ColorAny>,
-    pub bg: Option<ColorAny>,
-}
-
-impl Parse for ColorSetPair {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let start = input.span();
-
-        let fg = input.parse().ok();
-        let bg = match input.parse::<Token![in]>() {
-            Ok(_) => Some(input.parse()?),
-            Err(_) => None,
-        };
-
-        if fg.is_none() && bg.is_none() {
-            Err(syn::Error::new(start, "empty color"))
-        } else {
-            Ok(Self { fg, bg })
-        }
-    }
-}
-
-impl SgrCode for ColorSetPair {
-    fn params(&self) -> Option<Cow<str>> {
-        let mut colors = Vec::with_capacity(2);
-
-        if let Some(color) = &self.fg {
-            colors.push(color.params(false));
-        }
-
-        if let Some(color) = &self.bg {
-            colors.push(color.params(true));
-        }
-
-        Some(Cow::Owned(colors.join(";")))
-    }
-}
-
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ColorRevert {
+pub enum ColorChange {
     Set(ColorAny),
     Reset,
-    NoReset,
+    NoChange,
 }
 
-impl ColorRevert {
-    fn mix(revert: Option<Self>, set: bool) -> Option<Self> {
-        if set || matches!(revert, Some(Self::Set(_))) {
-            revert
-        } else {
-            None
+impl ColorChange {
+    fn mix(set: Option<Self>, revert: Option<Self>) -> Option<Self> {
+        match (set, revert) {
+            //  Revert an initial value.
+            (Some(Self::Set(_)), revert) => revert,
+
+            //  Explicit new value does not care about initial value.
+            (_, set_new @ Some(Self::Set(_))) => set_new,
+
+            //  Explicitly revert nothing.
+            (_, no_change @ Some(Self::NoChange)) => no_change,
+
+            //  No initial value to be reset.
+            (Some(Self::NoChange), Some(Self::Reset)) => None,
+            (Some(Self::NoChange), None) => None,
+
+            //  Cannot reset a reset.
+            (Some(Self::Reset), Some(Self::Reset)) => None,
+            (Some(Self::Reset), None) => None,
+
+            //  No initial value to be reset.
+            (None, Some(Self::Reset)) => None,
+            (None, None) => None,
         }
     }
 
@@ -212,15 +188,15 @@ impl ColorRevert {
         match self {
             Self::Set(color) => Some(color.params(bg)),
             Self::Reset => Some(format!("{}", color_reset(bg))),
-            Self::NoReset => None,
+            Self::NoChange => None,
         }
     }
 }
 
-impl Parse for ColorRevert {
+impl Parse for ColorChange {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.parse::<Token![!]>().is_ok() {
-            Ok(Self::NoReset)
+            Ok(Self::NoChange)
         } else if let Ok(color) = input.parse() {
             Ok(Self::Set(color))
         } else {
@@ -230,11 +206,71 @@ impl Parse for ColorRevert {
 }
 
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct ColorSetPair {
+    pub fg: Option<ColorChange>,
+    pub bg: Option<ColorChange>,
+}
+
+impl Parse for ColorSetPair {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let start = input.span();
+
+        if input.parse::<Token![*]>().is_ok() {
+            Ok(Self {
+                fg: Some(ColorChange::Reset),
+                bg: Some(ColorChange::Reset),
+            })
+        } else {
+            let fg = input.parse().ok().filter(|&x| x != ColorChange::Reset);
+            // let fg = input.parse().ok();
+            let bg = match input.parse::<Token![in]>() {
+                Ok(_) => Some(input.parse()?),
+                Err(_) => None,
+            };
+
+            if fg.is_none() && bg.is_none() {
+                Err(syn::Error::new(start, "empty color"))
+            } else {
+                Ok(Self { fg, bg })
+            }
+        }
+    }
+}
+
+impl SgrCode for ColorSetPair {
+    fn params(&self) -> Option<Cow<str>> {
+        match self {
+            Self { fg: None, bg: None } => None,
+            Self { fg: Some(fg), bg: None } => {
+                fg.params(false).map(Cow::Owned)
+            }
+            Self { fg: None, bg: Some(bg) } => {
+                bg.params(true).map(Cow::Owned)
+            }
+            Self { fg: Some(fg), bg: Some(bg) } => {
+                let mut colors = Vec::with_capacity(2);
+
+                colors.extend(fg.params(false));
+                colors.extend(bg.params(true));
+
+                let params = colors.join(";");
+                if !params.is_empty() {
+                    Some(Cow::Owned(params))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ColorRevertPair {
     Pair {
-        fg: Option<ColorRevert>,
-        bg: Option<ColorRevert>,
+        fg: Option<ColorChange>,
+        bg: Option<ColorChange>,
     },
     ResetAll,
     ResetNone,
@@ -243,15 +279,17 @@ pub enum ColorRevertPair {
 impl ColorRevertPair {
     const fn reset_either() -> Self {
         Self::Pair {
-            fg: Some(ColorRevert::Reset),
-            bg: Some(ColorRevert::Reset),
+            fg: Some(ColorChange::Reset),
+            bg: Some(ColorChange::Reset),
         }
     }
 }
 
 impl Parse for ColorRevertPair {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        if input.parse::<Token![*]>().is_ok() {
+        if input.parse::<Token![!]>().is_ok() {
+            Ok(Self::ResetNone)
+        } else if input.parse::<Token![*]>().is_ok() {
             Ok(Self::ResetAll)
         } else {
             let fg = input.parse().ok();
@@ -260,11 +298,7 @@ impl Parse for ColorRevertPair {
                 Err(_) => None,
             };
 
-            if fg.is_none() && bg.is_none() {
-                Ok(Self::ResetNone)
-            } else {
-                Ok(Self::Pair { fg, bg })
-            }
+            Ok(Self::Pair { fg, bg })
         }
     }
 }
@@ -285,7 +319,12 @@ impl SgrCode for ColorRevertPair {
                 colors.extend(fg.params(false));
                 colors.extend(bg.params(true));
 
-                Some(Cow::Owned(colors.join(";")))
+                let params = colors.join(";");
+                if !params.is_empty() {
+                    Some(Cow::Owned(params))
+                } else {
+                    None
+                }
             }
             Self::ResetAll => Some(Cow::Borrowed("39;49")),
             Self::ResetNone => None,
@@ -372,8 +411,8 @@ impl SgrData for SgrColor {
     fn fmt_closing(&self) -> Self::CodeClosing {
         match self.color_revert {
             ColorRevertPair::Pair { fg, bg } => ColorRevertPair::Pair {
-                fg: ColorRevert::mix(fg, self.color_set.fg.is_some()),
-                bg: ColorRevert::mix(bg, self.color_set.bg.is_some()),
+                fg: ColorChange::mix(self.color_set.fg, fg),
+                bg: ColorChange::mix(self.color_set.bg, bg),
             },
             other => other,
         }

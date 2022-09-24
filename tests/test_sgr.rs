@@ -4,7 +4,8 @@ use sgr_macros::*;
 
 macro_rules! edbg {
     ($v:expr) => {{
-        eprintln!("{}", $v);
+        // eprintln!("{}", dbg!($v));
+        // eprintln!("{}", $v);
         $v
     }};
 }
@@ -255,6 +256,14 @@ fn test_unified_color() {
         edbg!(color!(0xFF7F00; "RGB Text")),
         "\x1B[38;2;255;127;0mRGB Text\x1B[39m",
     );
+    assert_eq!(
+        edbg!(color!(!; "Text")),
+        "Text",
+    );
+    assert_eq!(
+        edbg!(color!(*; "Text")),
+        "\x1B[39;49mText",
+    );
 
     //  Test all background set modes.
     assert_eq!(
@@ -269,6 +278,10 @@ fn test_unified_color() {
         edbg!(color!(in 0xFF7F00; "Text on RGB")),
         "\x1B[48;2;255;127;0mText on RGB\x1B[49m",
     );
+    assert_eq!(
+        edbg!(color!(in !; "Text")),
+        "Text",
+    );
 
     //  Test combined fg+bg set modes.
     assert_eq!(
@@ -282,6 +295,10 @@ fn test_unified_color() {
     assert_eq!(
         edbg!(color!(73 in 0xFF7F00; "Indexed Text on RGB")),
         "\x1B[38;5;73;48;2;255;127;0mIndexed Text on RGB\x1B[39;49m",
+    );
+    assert_eq!(
+        edbg!(color!(! in !; "Text")),
+        "Text",
     );
 
     //  Test revert specification.
@@ -301,4 +318,38 @@ fn test_unified_color() {
         edbg!(color!("green"; "Green Text"; *)),
         "\x1B[32mGreen Text\x1B[39;49m",
     );
+
+    assert_eq!(
+        edbg!(color!(!; "Text"; !)),
+        "Text",
+    );
+    assert_eq!(
+        edbg!(color!(*; "Text"; *)),
+        "\x1B[39;49mText\x1B[39;49m",
+    );
+    assert_eq!(
+        edbg!(color!(_ in _; "Text"; _ in _)),
+        "\x1B[39;49mText\x1B[39;49m",
+    );
+    assert_eq!(
+        edbg!(color!(!; "Text"; *)),
+        "Text\x1B[39;49m",
+    );
+    assert_eq!(
+        edbg!(color!(*; "Text"; !)),
+        "\x1B[39;49mText",
+    );
+    assert_eq!(
+        edbg!(color!(!; "Text"; "black" in "white")),
+        "Text\x1B[30;47m",
+    );
+    assert_eq!(
+        edbg!(color!(*; "Text"; "black" in "white")),
+        "\x1B[39;49mText\x1B[30;47m",
+    );
+
+    // assert_eq!( // TODO
+    //     edbg!(color!(! in !; "Text"; ! in !)),
+    //     "Text",
+    // );
 }
