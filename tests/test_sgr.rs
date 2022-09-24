@@ -290,7 +290,15 @@ fn test_unified_color() {
         "\x1B[32mGreen Text\x1B[39;41m",
     );
     assert_eq!(
-        edbg!(color!("green"; "Green Text"; "bright yellow" in "red")),
-        "\x1B[32mGreen Text\x1B[93;41m",
+        edbg!(color!("green" in _; "Green Text"; "bright yellow" in "red")),
+        "\x1B[32;49mGreen Text\x1B[93;41m",
+    );
+    assert_eq!(
+        edbg!(color!("green" in "yellow"; "Green Text"; !)),
+        "\x1B[32;43mGreen Text",
+    );
+    assert_eq!(
+        edbg!(color!("green"; "Green Text"; *)),
+        "\x1B[32mGreen Text\x1B[39;49m",
     );
 }

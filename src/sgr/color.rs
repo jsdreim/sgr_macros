@@ -48,6 +48,7 @@ pub enum ColorNamed {
     Magenta = 35,
     Cyan = 36,
     White = 37,
+    Default = COLOR_RESET,
 }
 
 
@@ -68,6 +69,10 @@ impl ColorBasic {
 
 impl Parse for ColorBasic {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.parse::<Token![_]>().is_ok() {
+            return Ok(Self { color: ColorNamed::Default, bright: false })
+        }
+
         let literal = input.parse::<syn::LitStr>()?;
         let value = literal.value().to_lowercase();
 
@@ -91,6 +96,7 @@ impl Parse for ColorBasic {
             "magenta" => ColorNamed::Magenta,
             "cyan" => ColorNamed::Cyan,
             "white" => ColorNamed::White,
+            "default" => ColorNamed::Default,
             _ => return Err(syn::Error::new(literal.span(), "invalid color")),
         };
 
