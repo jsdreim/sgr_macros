@@ -79,7 +79,7 @@ impl Parse for ColorBasic {
         let bright: bool;
         let color_name: &str;
 
-        if let Some(base) = value.strip_prefix("bright ") {
+        if let Some(base) = value.trim().strip_prefix("bright") {
             bright = true;
             color_name = base;
         } else {
@@ -87,7 +87,7 @@ impl Parse for ColorBasic {
             color_name = value.as_str();
         }
 
-        let color = match color_name {
+        let color = match color_name.trim() {
             "black" => ColorNamed::Black,
             "red" => ColorNamed::Red,
             "green" => ColorNamed::Green,
@@ -96,7 +96,7 @@ impl Parse for ColorBasic {
             "magenta" => ColorNamed::Magenta,
             "cyan" => ColorNamed::Cyan,
             "white" => ColorNamed::White,
-            "default" => ColorNamed::Default,
+            "default" /*if !bright*/ => ColorNamed::Default,
             _ => return Err(syn::Error::new(literal.span(), "invalid color")),
         };
 
